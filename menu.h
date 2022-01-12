@@ -24,9 +24,18 @@ enum entry_type {
     ENTRY_CONDITIONAL
 };
 
-/* Generic struct for an entry, must be
- * cast to different types accordingly 
+
+/* Generic union for an entry, uses C99
+ * common initial sequence to avoid casting
  */
+union entryun;
+
+struct menu {
+    int curentry;
+    /* Must be NULL-terminated */
+    union entryun **entries;
+};
+
 struct entry {
     int type;
 };
@@ -56,14 +65,17 @@ struct inent {
 /* ENTRY_CONDITIONAL */
 struct condent {
     int type, condtype;
-    struct entry *entry;
+    //struct entry *entry;
+    union entryun *entry;
     int (*condition)(struct menu *menu);
 };
 
-struct menu {
-    int curentry;
-    /* Must be NULL-terminated */
-    struct entry **entries;
+union entryun {
+    struct entry common;
+    struct textent text;
+    struct roulent roullete;
+    struct inent input;
+    struct condent conditional;
 };
 
 /* Shows a menu, returns when an option is selected */

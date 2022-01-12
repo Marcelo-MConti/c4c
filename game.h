@@ -5,6 +5,7 @@ enum playmode {
     PLAY_PLPL,
     PLAY_PLPC,
     PLAY_PCPC,
+    PLAY_NET
 };
 
 struct gameinfo {
