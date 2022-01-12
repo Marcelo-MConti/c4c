@@ -22,45 +22,28 @@ int main()
     curs_set(0);
 
     struct menu menu;
-    
-    menu.curentry = 0;
-    menu.entrycnt = 3;
-    menu.entries = (struct entry []) {
-        {
-            ENTRY_SELECTABLE, "START", 
-                &(struct selent) {
-                    .func = (void (*)(void *))startgame,
-                    .arg = &(struct gameinfo) {0},
-                    .attr = SELENT_MENU_RETURN
-                } 
-        },
+
+    menu.entries = (struct entry *[]) {
+        (struct entry *) (struct textent []) {{
+            ENTRY_SELECTABLE, "START"
+        }},
         
-        {
-            ENTRY_SELECTABLE, "QUIT", 
-                &(struct selent) { 
-                    .func = quit 
-                }
-        },
+        (struct entry *) (struct textent []) {{
+            ENTRY_SELECTABLE, "QUIT"
+        }},
 
-        {
+        (struct entry *) (struct roulent []) {{
             ENTRY_ROULETTE, "PLAYERS",
-                &(struct rlent) { 
-                    .alt = (char *[]) { "PL. VS. PL.", "PLAYER VS. PC", "PC VS. PC" },
-                    .entrycnt = 3
-                }
-        }
-    };
+            (char *[]) { "PL. VS. PL.", "PLAYER VS. PC", "PC VS. PC" },
+        }},
 
-    ((struct rlent *)menu.entries[2].data)->store = 
-        &((struct gameinfo *)((struct selent *)menu.entries[0].data)->arg)->playmode;
-    
+        0
+    };
+   
     int entry = domenu(stdscr, &menu, 30, 6);
 
     if (entry == 0) {
-        struct selent *data = (struct selent *)menu.entries[0].data;
-        data->func(data->arg);
     }
-
     addstr("ok");
     refresh();
     

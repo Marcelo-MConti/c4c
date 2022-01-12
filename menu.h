@@ -3,55 +3,70 @@
 
 #include <ncurses.h>
 
-/* ENTRY_SELECTABLE: Creates a selectable entry 
- * that will run the specified function when selected
+/* ENTRY_SELECTABLE: Creates a selectable entry. 
+ * Menu will return index of the entry 
  *
  * ENTRY_TEXT: Creates a basic text entry
  *
  * ENTRY_ROULETTE: Creates a "roulette" of options
+ *
+ * ENTRY_INPUT: Text input that can be validated.
+ * Won't be validated if @validate is NULL
+ *
+ * ENTRY_CONDITIONAL: Only show the containing entry
+ * if specified condition is true
  */
 enum entry_type {
     ENTRY_SELECTABLE,
     ENTRY_TEXT,
-    ENTRY_ROULETTE
+    ENTRY_ROULETTE,
+    ENTRY_INPUT,
+    ENTRY_CONDITIONAL
 };
 
-/* Makes selectable entry return from menu function 
- * and destroy menu resources when called
- */ 
-#define SELENT_MENU_RETURN (1 << 0)
-
+/* Generic struct for an entry, must be
+ * cast to different types accordingly 
+ */
 struct entry {
     int type;
-    char *text;
-    /* @data shall be a pointer to the corresponding
-     * struct for the entry according to its type     
-     */
-    void *data;
 };
 
-/* ENTRY_SELECTABLE */
-struct selent {
-    void (*func)(void *arg);
-    void *arg;
-    int attr;
+/* ENTRY_SELECTABLE | ENTRY_TEXT */
+struct textent {
+    int type;
+    char *text;
 };
 
 /* ENTRY_ROULETTE */
-struct rlent {
-    /* @alt corresponds to the legends for each value in @val */
+struct roulent {
+    int type;
+    char *text;
+    /* @alt corresponds to the legends for each value */
     char **alt;
-    /* @store is the pointer to the storage location, has to be a pointer to short */
-    void *store;
-    int curoption, entrycnt;
+    int curoption;
+};
+
+/* ENTRY_INPUT */
+struct inent {
+    int type;
+    char *text, *buf;
+    int (*validate)(char *buf);
+};
+
+/* ENTRY_CONDITIONAL */
+struct condent {
+    int type, condtype;
+    struct entry *entry;
+    int (*condition)(struct menu *menu);
 };
 
 struct menu {
-    struct entry *entries;
-    int curentry, entrycnt;
+    int curentry;
+    /* Must be NULL-terminated */
+    struct entry **entries;
 };
 
-/* Returns the index of the entry in case a returnable selectable entry is selected */
-int domenu(WINDOW *win, struct menu *menu, int x, int y);
+/* Shows a menu, returns when an option is selected */
+int domenu(WINDOW *win, struct menu *menu);
 
 #endif /* _MENU_H_ */
