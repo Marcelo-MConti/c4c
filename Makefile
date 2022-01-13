@@ -21,8 +21,7 @@ PREFIX ?= /usr/local
 all: build c4c
 
 install: all
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp -f c4c $(DESTDIR)$(PREFIX)/bin
+	install -D c4c $(DESTDIR)$(PREFIX)/bin/c4c
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/c4c
@@ -40,10 +39,10 @@ build:
 	mkdir -p build
 
 c4c: $(OBJECTS)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(LIBS)
 
 build/%.o: src/%.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 include/logo.h: res/logo
 	scripts/genlogo.sh $< $@
