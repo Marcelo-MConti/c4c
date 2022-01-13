@@ -10,7 +10,7 @@ int pcplay(char **board) {return 1;}
 
 static void printboard(char **board)
 {
-     
+
 }
 
 void startgame(struct gameinfo *info)
@@ -21,7 +21,7 @@ void startgame(struct gameinfo *info)
 
     if (!game.board)
         errx(1, "failed to malloc()");
-   
+
     int winx, winy;
     getmaxyx(stdscr, winy, winx);
 
@@ -35,12 +35,12 @@ void startgame(struct gameinfo *info)
     case PLAY_PLPL:
         game.playfunc[0] = localplay;
         game.playfunc[1] = localplay;
-        
+
         break;
     case PLAY_PLPC:
         game.playfunc[0] = localplay;
         game.playfunc[1] = pcplay;
-        
+
         break;
     case PLAY_PCPC:
         game.playfunc[0] = pcplay;

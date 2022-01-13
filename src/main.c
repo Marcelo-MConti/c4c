@@ -11,7 +11,7 @@ void quit()
     echo();
     curs_set(1);
     endwin();
-    
+
     exit(0);
 }
 
@@ -22,7 +22,7 @@ int validate(char *buf)
 
 int checknetplay(struct menu *menu)
 {
-    struct roulent *entry = (struct roulent *)menu->entries[2];
+    struct roulent *entry = &menu->entries[2]->roulette;
 
     return entry->curoption == PLAY_NET;
 }
@@ -30,17 +30,18 @@ int checknetplay(struct menu *menu)
 int main()
 {
     initscr();
-    cbreak(); 
+    cbreak();
     noecho();
     curs_set(0);
 
-    struct menu menu;
+    struct menu menu = {0};
+    menu.win = stdscr;
 
     menu.entries = (union entryun *[]) {
         (union entryun *) (struct textent []) {{
             ENTRY_SELECTABLE, "START"
         }},
-        
+
         (union entryun *) (struct textent []) {{
             ENTRY_SELECTABLE, "QUIT"
         }},
@@ -61,13 +62,15 @@ int main()
         0
     };
 
-//    int entry = domenu(stdscr, &menu);
+    keypad(stdscr, TRUE);
+
+    int entry = domenu(&menu);
 
 //    if (entry == 0) {
 //    }
     addstr("ok");
     refresh();
-    
+
     getch();
 
     endwin();

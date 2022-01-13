@@ -1,6 +1,14 @@
 #!/bin/sh
 
-exec 3>logo.h
+if [ $# -lt 2 ]; then
+    echo "Needs source filename and destination filename!"
+    exit 1
+fi
+
+SRC=$1
+DST=$2
+
+exec 3>"$DST"
 
 cat << EOF >&3
 #ifndef _LOGO_H_
@@ -9,7 +17,7 @@ cat << EOF >&3
 static const char *logo[] = {
 EOF
 
-OD=$(od -b -v logo | sed -E 's/^[0-9]{7}//g')
+OD=$(od -b -v "$SRC" | sed -E 's/^[0-9]{7}//g')
 
 printf '    "' >&3
 
