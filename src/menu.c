@@ -48,32 +48,188 @@ static int drawentry(struct menu *menu, int index)
                 ent->roulette.alt[ent->roulette.curoption]);
         waddstr(menu->win, "> ");
         break;
+    case ENTRY_INPUT:
+        wprintw(menu->win, " %s: ", ent->input.text);
+        mvwaddstr(menu->win, cury, winx - 3, "_");
+        break;
     case ENTRY_CONDITIONAL:
         return -1;
     }
 
     return 1;
+
 }
 
-static void drawmenu(struct menu *menu)
+/* @ret: visual index of selected entry */
+static int drawmenu(struct menu *menu)
 {
-    int cury, curx;
+    wclrtobot(menu->win);
+
+    box(menu->win, 0, 0);
+    wmove(menu->win, 1, 1);
+
+    int cury, curx, tmp = -1;
 
     for (int i = 0; menu->entries[i]; i++) {
         getyx(menu->win, cury, curx);
 
         int ret = drawentry(menu, i);
 
-        if (ret == 1)
-            wmove(menu->win, cury + 1, 1);
+        switch (ret) {
+        case -1:
+            return -1;
+        case 1:
+            if (i == menu->curentry)
+                tmp = cury;
 
-        wrefresh(menu->win);
+            wmove(menu->win, cury + 1, 1);
+        }
+    }
+
+    return tmp;
+}
+
+/* get index of next visible entry in menu */
+static int getnextentry(struct menu *menu)
+{
+    int inc = 1;
+
+    while (1) {
+       union entryun *ent = menu->entries[menu->curentry + inc];
+
+       if (!ent) {
+           return menu->curentry;
+       } else if (ent->common.type == ENTRY_CONDITIONAL) {
+           int res = ent->conditional.condition(menu);
+
+           if (res)
+               return menu->curentry + inc;
+           else
+               inc++;
+       } else {
+           return menu->curentry + inc;
+       }
     }
 }
 
-static int getnextentry(struct menu *menu)
+/* get index of previous visible entry in menu */
+static int getpreventry(struct menu *menu)
 {
+    if (menu->curentry == 0)
+        return 0;
 
+    int dec = 1;
+
+    while (1) {
+        union entryun *ent = menu->entries[menu->curentry - dec];
+
+        if (menu->curentry - dec == 0) {
+            return 0;
+        } else if (ent->common.type == ENTRY_CONDITIONAL) {
+            int res = ent->conditional.condition(menu);
+
+            if (res)
+                return menu->curentry - dec;
+            else
+                dec++;
+        } else {
+            return menu->curentry - dec;
+        }
+    }
+}
+
+/* get user input and then validate it
+ * FIXME: Add bounds checking and prettify (grey bg) */
+static void getinput(struct inent *input)
+{
+    int winx = 30, winy = 5;
+    WINDOW *inputbox = newwin(winy, winx, 1, 1);
+
+    keypad(inputbox, TRUE);
+    curs_set(1);
+    box(inputbox, 0, 0);
+
+    int ch, cury, curx, len = 0, curind = 0;
+
+    if (input->buf[0]) {
+        len = strlen(input->buf);
+
+        wmove(inputbox, 3, 1);
+
+        waddstr(inputbox, input->buf);
+    }
+
+    wmove(inputbox, 3, 1);
+
+    while ((ch = wgetch(inputbox))) {
+        getyx(inputbox, cury, curx);
+
+        switch (ch) {
+        case KEY_LEFT:
+            if (curind > 0) {
+                curind--;
+                wmove(inputbox, cury, curx - 1);
+            }
+
+            break;
+        case KEY_RIGHT:
+            if (curind < len) {
+                curind++;
+                wmove(inputbox, cury, curx + 1);
+            }
+
+            break;
+        case '\n':
+            if (input->validate) {
+                char *err = input->validate(input->buf);
+
+                if (err) {
+                    mvwaddstr(inputbox, 1, 2, err);
+                    wmove(inputbox, 3, 1);
+
+                    for (int i = 1; i < winx - 1; i++)
+                        waddch(inputbox, ' ');
+
+                    input->buf[0] = 0;
+                    curind = 0;
+                    len = 0;
+
+                    wmove(inputbox, 3, 1);
+                    continue;
+                }
+            }
+
+            delwin(inputbox);
+            curs_set(0);
+            return;
+        case KEY_DC:
+            if (curind >= 0 && curind < len) {
+                memmove(input->buf + curind, input->buf + curind + 1, len - curind);
+
+                len--;
+
+                input->buf[len] = 0;
+                mvwaddstr(inputbox, cury, 1, input->buf);
+
+                waddch(inputbox, ' ');
+                wmove(inputbox, cury, curx);
+            }
+
+            break;
+        default:
+            if (curx + 2 != winx && ch >= ' ' && ch <= '~') {
+                memmove(input->buf + curind + 1, input->buf + curind, len - curind);
+                input->buf[curind++] = ch;
+
+                len++;
+
+                input->buf[len + 1] = 0;
+                mvwaddstr(inputbox, cury, 1, input->buf);
+
+                wmove(inputbox, cury, curx + 1);
+            }
+        }
+    }
 }
 
 /* makes a centered menu with the corresponding entries */
@@ -83,8 +239,8 @@ int domenu(struct menu *menu)
         return 1;
 
     int winy, winx;
-    int cury, curx;
     getmaxyx(menu->win, winy, winx);
+    box(menu->win, 0, 0);
 
     wmove(menu->win, 1, 1);
 
@@ -94,27 +250,27 @@ int domenu(struct menu *menu)
     int ch;
     while ((ch = wgetch(menu->win))) {
         switch (ch) {
-        case KEY_UP:
-            if (menu->curentry != 0) {
-                wmove(menu->win, menu->curentry + 1, 1);
-                waddstr(menu->win, "  ");
+        case KEY_UP: ;
+            int prevent = getpreventry(menu);
 
-                wmove(menu->win, menu->curentry, 1);
-                waddstr(menu->win, " *");
+            if (menu->curentry != prevent) {
+                menu->curentry = prevent;
 
-                menu->curentry--;
+                wmove(menu->win, 1, 1);
+                int viscury = drawmenu(menu);
+                wmove(menu->win, viscury - 1, 1);
             }
 
             break;
-        case KEY_DOWN:
-            if (menu->entries[menu->curentry + 1]) {
-                wmove(menu->win, menu->curentry + 1, 1);
-                waddstr(menu->win, "  ");
+        case KEY_DOWN: ;
+            int nextent = getnextentry(menu);
 
-                wmove(menu->win, menu->curentry + 2, 1);
-                waddstr(menu->win, " *");
+            if (menu->curentry != nextent) {
+                menu->curentry = nextent;
 
-                menu->curentry++;
+                wmove(menu->win, 1, 1);
+                int viscury = drawmenu(menu);
+                wmove(menu->win, viscury, 1);
             }
 
             break;
@@ -125,15 +281,9 @@ int domenu(struct menu *menu)
                 if (tmp->curoption != 0) {
                     tmp->curoption--;
 
-                    int len = 1 + 2 + 1 + strlen(menu->entries[menu->curentry]->roulette.text) + 1 + 2;
-                    getyx(menu->win, cury, curx);
-
-                    wmove(menu->win, cury, len);
-                    for (int i = len; i < winx - 3; i++)
-                        waddch(menu->win, ' ');
-
-                    len = winx - 3 - strlen(tmp->alt[tmp->curoption]);
-                    mvwaddstr(menu->win, cury, len, tmp->alt[tmp->curoption]);
+                    wmove(menu->win, 1, 1);
+                    int viscury = drawmenu(menu);
+                    wmove(menu->win, viscury, 1);
                 }
             }
 
@@ -145,23 +295,30 @@ int domenu(struct menu *menu)
                 if (tmp->alt[tmp->curoption + 1]) {
                     tmp->curoption++;
 
-                    int len = 1 + 2 + 1 + strlen(menu->entries[menu->curentry]->text.text) + 1 + 2;
-                    getyx(menu->win, cury, curx);
-
-                    wmove(menu->win, cury, len);
-                    for (int i = len; i < winx - 3; i++)
-                        waddch(menu->win, ' ');
-
-                    len = winx - 3 - strlen(tmp->alt[tmp->curoption]);
-                    mvwaddstr(menu->win, cury, len, tmp->alt[tmp->curoption]);
+                    wmove(menu->win, 1, 1);
+                    int viscury = drawmenu(menu);
+                    wmove(menu->win, viscury, 1);
                 }
             }
 
             break;
         case '\n':
-        case ' ':
-            if (menu->entries[menu->curentry]->common.type == ENTRY_SELECTABLE)
+        case ' ': ;
+            union entryun *ent = menu->entries[menu->curentry];
+
+            if (ent->common.type == ENTRY_CONDITIONAL)
+                ent = ent->conditional.entry;
+
+            switch (ent->common.type) {
+            case ENTRY_SELECTABLE:
                 return menu->curentry;
+            case ENTRY_CONDITIONAL:
+                return -1;
+            case ENTRY_INPUT:
+                getinput(&ent->input);
+                /* FIXME: Possibly inefficient */
+                redrawwin(stdscr);
+            }
 
             break;
         }

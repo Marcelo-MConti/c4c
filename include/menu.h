@@ -49,18 +49,18 @@ struct textent {
 
 /* ENTRY_ROULETTE */
 struct roulent {
-    int type;
+    int type, curoption;
     char *text;
     /* @alt corresponds to the legends for each value */
     char **alt;
-    int curoption;
 };
 
 /* ENTRY_INPUT */
 struct inent {
-    int type;
+    int type, bufsize;
     char *text, *buf;
-    int (*validate)(char *buf);
+    /* @ret: NULL if validated succesfully, error message otherwise */
+    char *(*validate)(char *buf);
 };
 
 /* ENTRY_CONDITIONAL */
