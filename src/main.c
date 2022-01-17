@@ -1,5 +1,8 @@
 #include <stdlib.h>
+#include <string.h>
 #include <ncurses.h>
+
+#include <err.h>
 
 #include "logo.h"
 #include "game.h"
@@ -15,21 +18,34 @@ void quit()
     exit(0);
 }
 
-int validate(char *buf)
+char *validate_host(char *buf)
 {
-
+    if (strchr(buf, ':'))
+        return NULL;
+    else
+        return "Host format: host:port";
 }
 
-int checknetplay(struct menu *menu)
+int check_netplay(struct menu *menu)
 {
-    struct roulent *entry = &menu->entries[2]->roulette;
-
-    return entry->curoption == PLAY_NET;
+    struct roul_ent *entry = &menu->entries[2]->roulette;
+    return entry->cur_option == PLAY_NET;
 }
 
 int main()
 {
     initscr();
+
+    if (!has_colors())
+        errx(1, "This terminal does not support colors, which is required for c4c to run.");
+
+    int termx, termy;
+    getmaxyx(stdscr, termy, termx);
+
+    if (termy < 10 || termx < 40)
+        errx(1, "Needs at least a 40x10 to terminal to work.");
+
+    start_color();
     cbreak();
     noecho();
     curs_set(0);
@@ -37,26 +53,26 @@ int main()
     struct menu menu = {0};
     menu.win = stdscr;
 
-    menu.entries = (union entryun *[]) {
-        (union entryun *) (struct textent []) {{
+    menu.entries = (union entry_un *[]) {
+        (union entry_un *) (struct text_ent []) {{
             ENTRY_SELECTABLE, "START"
         }},
 
-        (union entryun *) (struct textent []) {{
+        (union entry_un *) (struct text_ent []) {{
             ENTRY_SELECTABLE, "QUIT"
         }},
 
-        (union entryun *) (struct roulent []) {{
-            ENTRY_ROULETTE, "PLAYERS",
-            (char *[]) { "PL. VS. PL.", "PLAYER VS. PC", "PC VS. PC", "NETPLAY" },
+        (union entry_un *) (struct roul_ent []) {{
+            ENTRY_ROULETTE, 0, "PLAYERS",
+            (char *[]) { "PL. VS. PL.", "PLAYER VS. PC", "PC VS. PC", "NETPLAY", 0 },
         }},
 
-        (union entryun *) (struct condent []) {{
-            ENTRY_CONDITIONAL, ENTRY_INPUT,
-            (union entryun *) (struct inent []) {{
-                ENTRY_INPUT, "HOST", (char [256]) {0}, validate
+        (union entry_un *) (struct cond_ent []) {{
+            ENTRY_CONDITIONAL,
+            (union entry_un *) (struct in_ent []) {{
+                ENTRY_INPUT, 255, "HOST", (char [256]) {0}, validate_host
             }},
-            checknetplay
+            check_netplay
         }},
 
         0
@@ -64,12 +80,19 @@ int main()
 
     keypad(stdscr, TRUE);
 
-    int entry = domenu(&menu);
+    int entry = do_menu(&menu);
 
-//    if (entry == 0) {
-//    }
-    addstr("ok");
-    refresh();
+    switch (entry) {
+    case 0:
+        quit();
+    case 1: ;
+        struct game_info gi;
+        gi.play_mode = menu.entries[2]->roulette.cur_option;
+        gi.width = 7;
+        gi.height = 6;
+
+        start_game(&gi);
+    }
 
     getch();
 

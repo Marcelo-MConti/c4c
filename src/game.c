@@ -1,6 +1,7 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <math.h>
+
 #include <err.h>
 
 #include "game.h"
@@ -8,12 +9,12 @@
 int localplay(char **board) {return 1;}
 int pcplay(char **board) {return 1;}
 
-static void printboard(char **board)
+static void print_board(char **board)
 {
 
 }
 
-void startgame(struct gameinfo *info)
+void start_game(struct game_info *info)
 {
     struct game game = {0};
     game.board = calloc(info->width, info->height);
@@ -31,29 +32,29 @@ void startgame(struct gameinfo *info)
     WINDOW *gamewin = newwin(info->height + 6, info->width + 2, offy, offx);
 
 
-    switch (info->playmode) {
+    switch (info->play_mode) {
     case PLAY_PLPL:
-        game.playfunc[0] = localplay;
-        game.playfunc[1] = localplay;
+        game.play_func[0] = localplay;
+        game.play_func[1] = localplay;
 
         break;
     case PLAY_PLPC:
-        game.playfunc[0] = localplay;
-        game.playfunc[1] = pcplay;
+        game.play_func[0] = localplay;
+        game.play_func[1] = pcplay;
 
         break;
     case PLAY_PCPC:
-        game.playfunc[0] = pcplay;
-        game.playfunc[1] = pcplay;
+        game.play_func[0] = pcplay;
+        game.play_func[1] = pcplay;
 
         break;
     }
 
-    printboard(game.board);
+    print_board(game.board);
 
     while (1) {
 #if 0
-        game.playfunc[game.curplayer](game.board);
+        game.play_func[game.curplayer](game.board);
 
         printboard(game.board);
 

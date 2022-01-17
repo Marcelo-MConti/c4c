@@ -28,12 +28,12 @@ enum entry_type {
 /* Generic union for an entry, uses C99
  * common initial sequence to avoid casting
  */
-union entryun;
+union entry_un;
 
 struct menu {
-    int curentry;
+    int cur_entry;
     /* Must be NULL-terminated */
-    union entryun **entries;
+    union entry_un **entries;
     WINDOW *win;
 };
 
@@ -42,21 +42,21 @@ struct entry {
 };
 
 /* ENTRY_SELECTABLE | ENTRY_TEXT */
-struct textent {
+struct text_ent {
     int type;
     char *text;
 };
 
 /* ENTRY_ROULETTE */
-struct roulent {
-    int type, curoption;
+struct roul_ent {
+    int type, cur_option;
     char *text;
     /* @alt corresponds to the legends for each value */
     char **alt;
 };
 
 /* ENTRY_INPUT */
-struct inent {
+struct in_ent {
     int type, bufsize;
     char *text, *buf;
     /* @ret: NULL if validated succesfully, error message otherwise */
@@ -64,24 +64,24 @@ struct inent {
 };
 
 /* ENTRY_CONDITIONAL */
-struct condent {
-    int type, condtype;
-    union entryun *entry;
+struct cond_ent {
+    int type;
+    union entry_un *entry;
     int (*condition)(struct menu *menu);
 };
 
-union entryun {
+union entry_un {
     struct entry common;
-    struct textent text;
-    struct roulent roulette;
-    struct inent input;
-    struct condent conditional;
+    struct text_ent text;
+    struct roul_ent roulette;
+    struct in_ent input;
+    struct cond_ent conditional;
 };
 
 /* Shows a menu on the specified window, assumes it
  * has curses borders and that the keypad is enabled.
  * Returns when an option is selected
  */
-int domenu(struct menu *menu);
+int do_menu(struct menu *menu);
 
 #endif /* _MENU_H_ */

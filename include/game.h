@@ -8,15 +8,15 @@ enum playmode {
     PLAY_NET
 };
 
-struct gameinfo {
-    short playmode;
+struct game_info {
+    short play_mode;
     int width, height;
 };
 
 struct game {
     char **board;
-    int (*playfunc[2])(char **board);
-    unsigned char curplayer;
+    int (*play_func[2])(char **board);
+    unsigned char cur_player;
 };
 
 enum position {
@@ -26,6 +26,6 @@ enum position {
 };
 
 
-void startgame(struct gameinfo *info);
+void start_game(struct game_info *info);
 
 #endif /* _GAME_H_ */
