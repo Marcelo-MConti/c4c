@@ -1,22 +1,15 @@
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 #include <ncurses.h>
+#include <math.h>
 
 #include <err.h>
 
+#include "util.h"
 #include "logo.h"
 #include "game.h"
 #include "menu.h"
-
-void quit()
-{
-    nocbreak();
-    echo();
-    curs_set(1);
-    endwin();
-
-    exit(0);
-}
 
 char *validate_host(char *buf)
 {
@@ -34,6 +27,8 @@ int check_netplay(struct menu *menu)
 
 int main()
 {
+    /* Required for ncurses to support UTF-8 */
+    setlocale(LC_CTYPE, "");
     initscr();
 
     if (!has_colors())
@@ -49,6 +44,25 @@ int main()
     cbreak();
     noecho();
     curs_set(0);
+
+    int max_logo_width = 0;
+
+    for (int i = 0; logo[i]; i++) {
+        int len = utf8len(logo[i]);
+
+        if (len > max_logo_width)
+            max_logo_width = len;
+    }
+
+    int offx = round((termx - max_logo_width) / 2);
+    int offy = round((termy - ARR_SIZE(logo)) / 2);
+
+    WINDOW *logo_win = newwin(ARR_SIZE(logo), max_logo_width, offy, offx);
+
+    for (int i = 0; logo[i]; i++) {
+        waddstr(logo_win, logo[i]);
+        wmove(logo_win, i + 1, 0);
+    }
 
     struct menu menu = {0};
     menu.win = stdscr;
@@ -84,7 +98,12 @@ int main()
 
     switch (entry) {
     case 0:
-        quit();
+        nocbreak();
+        echo();
+        curs_set(1);
+        endwin();
+
+        return 0;
     case 1: ;
         struct game_info gi;
         gi.play_mode = menu.entries[2]->roulette.cur_option;
@@ -93,8 +112,4 @@ int main()
 
         start_game(&gi);
     }
-
-    getch();
-
-    endwin();
 }
