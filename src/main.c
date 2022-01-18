@@ -37,8 +37,8 @@ int main()
     int termx, termy;
     getmaxyx(stdscr, termy, termx);
 
-    if (termy < 10 || termx < 40)
-        errx(1, "Needs at least a 40x10 to terminal to work.");
+    if (termy < 20 || termx < 50)
+        errx(1, "Needs at least a 50x20 to terminal to work.");
 
     start_color();
     cbreak();
@@ -54,18 +54,33 @@ int main()
             max_logo_width = len;
     }
 
-    int offx = round((termx - max_logo_width) / 2);
-    int offy = round((termy - ARR_SIZE(logo)) / 2);
+    struct menu menu = {0};
 
+    menu.center = calloc(2, sizeof(struct win_off));
+    menu.center[0].off_offy = -4;
+    menu.center[1].off_offy = 4;
+
+    int offx = round((termx - max_logo_width) / 2);
+    int offy = round(((termy - ARR_SIZE(logo)) / 2) + menu.center[0].off_offy);
     WINDOW *logo_win = newwin(ARR_SIZE(logo), max_logo_width, offy, offx);
+
+    menu.center[0].win = logo_win;
 
     for (int i = 0; logo[i]; i++) {
         waddstr(logo_win, logo[i]);
         wmove(logo_win, i + 1, 0);
     }
 
-    struct menu menu = {0};
-    menu.win = stdscr;
+    wrefresh(logo_win);
+
+    offx = round((termx - 30) / 2);
+    offy = round(((termy - 6) / 2) + menu.center[1].off_offy);
+    WINDOW *menu_win = newwin(6, 30, offy, offx);
+
+    menu.center[1].win = menu_win;
+    menu.win = menu_win;
+
+    menu.center[2].win = NULL;
 
     menu.entries = (union entry_un *[]) {
         (union entry_un *) (struct text_ent []) {{
@@ -77,7 +92,7 @@ int main()
         }},
 
         (union entry_un *) (struct roul_ent []) {{
-            ENTRY_ROULETTE, 0, "PLAYERS",
+            ENTRY_ROULETTE, 0, "PMODE",
             (char *[]) { "PL. VS. PL.", "PLAYER VS. PC", "PC VS. PC", "NETPLAY", 0 },
         }},
 
@@ -92,24 +107,26 @@ int main()
         0
     };
 
-    keypad(stdscr, TRUE);
-
     int entry = do_menu(&menu);
 
     switch (entry) {
-    case 0:
-        nocbreak();
-        echo();
-        curs_set(1);
-        endwin();
-
-        return 0;
-    case 1: ;
+    case 0: ;
         struct game_info gi;
         gi.play_mode = menu.entries[2]->roulette.cur_option;
         gi.width = 7;
         gi.height = 6;
 
         start_game(&gi);
-    }
+
+        break;
+    case 1:
+        nocbreak();
+        echo();
+        curs_set(1);
+        endwin();
+
+        free(menu.center);
+
+        return 0;
+   }
 }

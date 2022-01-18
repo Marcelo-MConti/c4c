@@ -35,6 +35,11 @@ struct menu {
     /* Must be NULL-terminated */
     union entry_un **entries;
     WINDOW *win;
+    /* These windows will be kept centered as the terminal is resized
+     * Must be dynamically allocated so that windows created for input
+     * entries can also be added to the list
+     */
+    struct win_off *center;
 };
 
 struct entry {
@@ -78,8 +83,7 @@ union entry_un {
     struct cond_ent conditional;
 };
 
-/* Shows a menu on the specified window, assumes it
- * has curses borders and that the keypad is enabled.
+/* Shows a menu on the specified window
  * Returns when an option is selected
  */
 int do_menu(struct menu *menu);

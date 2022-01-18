@@ -1,7 +1,16 @@
 #include <ncurses.h>
 #include <string.h>
+#include <math.h>
 
+#include <err.h>
+
+#include "util.h"
 #include "menu.h"
+
+enum {
+    PREVIOUS,
+    NEXT
+};
 
 /* @ret: 0 - entry was not drawn due to being conditional and condition being false
  *       1 - entry was drawn
@@ -16,18 +25,16 @@ static int draw_entry(struct menu *menu, int index)
     union entry_un *ent = menu->entries[index];
 
     if (ent->common.type == ENTRY_CONDITIONAL) {
-        int res = ent->conditional.condition(menu);
-
-        if (res)
+        if (ent->conditional.condition(menu))
             ent = ent->conditional.entry;
         else
             return 0;
     }
 
     if (index == menu->cur_entry)
-        waddstr(menu->win, " *");
+        mvwaddch(menu->win, cury, 2, '*' | A_BOLD);
     else
-        waddstr(menu->win, "  ");
+        mvwaddch(menu->win, cury, 2, ' ');
 
     switch (ent->common.type) {
     case ENTRY_SELECTABLE: ;
@@ -49,14 +56,22 @@ static int draw_entry(struct menu *menu, int index)
         break;
     case ENTRY_INPUT:
         wprintw(menu->win, " %s: ", ent->input.text);
-        mvwaddstr(menu->win, cury, winx - 3, "_");
+
+        if (!ent->input.buf[0]) {
+            mvwaddch(menu->win, cury, winx - 3, '_');
+        } else {
+            int len = strlen(ent->input.buf);
+
+            wmove(menu->win, cury, winx - ((len < 15) ? len : 15) - 2);
+            print_truncate(menu->win, ent->input.buf, len, 15);
+        }
+
         break;
     case ENTRY_CONDITIONAL:
         return -1;
     }
 
     return 1;
-
 }
 
 /* @ret: visual index of selected entry */
@@ -72,9 +87,7 @@ static int draw_menu(struct menu *menu)
     for (int i = 0; menu->entries[i]; i++) {
         getyx(menu->win, cury, curx);
 
-        int ret = draw_entry(menu, i);
-
-        switch (ret) {
+        switch (draw_entry(menu, i)) {
         case -1:
             return -1;
         case 1:
@@ -88,61 +101,49 @@ static int draw_menu(struct menu *menu)
     return tmp;
 }
 
-/* get index of next visible entry in menu */
-static int get_next_entry(struct menu *menu)
+/* @ret: index of previous/next visible entry in menu */
+static int get_entry_whence(struct menu *menu, int whence)
 {
-    int inc = 1;
+    int inc = menu->cur_entry;
 
     while (1) {
-       union entry_un *ent = menu->entries[menu->cur_entry + inc];
+        union entry_un *ent;
 
-       if (!ent) {
-           return menu->cur_entry;
-       } else if (ent->common.type == ENTRY_CONDITIONAL) {
-           int res = ent->conditional.condition(menu);
-
-           if (res)
-               return menu->cur_entry + inc;
-           else
-               inc++;
-       } else {
-           return menu->cur_entry + inc;
-       }
-    }
-}
-
-/* get index of previous visible entry in menu */
-static int get_prev_entry(struct menu *menu)
-{
-    if (menu->cur_entry == 0)
-        return 0;
-
-    int dec = 1;
-
-    while (1) {
-        union entry_un *ent = menu->entries[menu->cur_entry - dec];
-
-        if (menu->cur_entry - dec == 0) {
+        if (whence == PREVIOUS && inc == 0)
             return 0;
-        } else if (ent->common.type == ENTRY_CONDITIONAL) {
-            int res = ent->conditional.condition(menu);
 
-            if (res)
-                return menu->cur_entry - dec;
-            else
-                dec++;
+        if (whence == PREVIOUS)
+            ent = menu->entries[--inc];
+        else
+            ent = menu->entries[++inc];
+
+        if (whence == NEXT && !ent)
+            return menu->cur_entry;
+
+        if (ent->common.type == ENTRY_CONDITIONAL) {
+            if (ent->conditional.condition(menu))
+                return inc;
         } else {
-            return menu->cur_entry - dec;
+            return inc;
         }
     }
 }
 
 /* get user input and then validate it
- * FIXME: Add bounds checking and prettify (grey bg) */
+ * FIXME: Add bounds checking */
 static void get_input(struct in_ent *input)
 {
+    init_pair(1, COLOR_RED, COLOR_BLACK);
+
+    int termx, termy;
+    getmaxyx(stdscr, termy, termx);
+
     int winx = 30, winy = 5;
-    WINDOW *input_box = newwin(winy, winx, 1, 1);
+
+    int offx = round((termx - winx) / 2);
+    int offy = 3;
+
+    WINDOW *input_box = newwin(winy, winx, offy, offx);
 
     keypad(input_box, TRUE);
     curs_set(1);
@@ -151,9 +152,7 @@ static void get_input(struct in_ent *input)
     int ch, cury, curx, len = 0, cur_ind = 0;
 
     wmove(input_box, 3, 1);
-    for (int i = 1; i < winx - 1; i++)
-        waddch(input_box, '#' | A_BOLD);
-    wmove(input_box, 3, 1);
+    fill(input_box, 1, winx - 2, '#' | A_BOLD);
 
     if (input->buf[0]) {
         len = strlen(input->buf);
@@ -181,25 +180,28 @@ static void get_input(struct in_ent *input)
 
             break;
         case '\n':
-            if (input->validate) {
+            if (input->validate && input->buf[0] != 0) {
                 char *err = input->validate(input->buf);
 
                 if (err) {
-                    mvwaddstr(input_box, 1, 2, err);
-                    wmove(input_box, 3, 1);
+                    fill(input_box, 1, winx - 2, ' ');
 
-                    for (int i = 1; i < winx - 1; i++)
-                        waddch(input_box, '#' | A_BOLD);
+                    wattrset(input_box, COLOR_PAIR(1));
+                    mvwaddstr(input_box, 1, (winx - strlen(err)) / 2, err);
+                    wattrset(input_box, COLOR_PAIR(0));
+
+                    wmove(input_box, 3, 1);
+                    fill(input_box, 1, winx - 2, '#' | A_BOLD);
 
                     input->buf[0] = 0;
                     cur_ind = 0;
                     len = 0;
 
-                    wmove(input_box, 3, 1);
                     continue;
                 }
             }
 
+            reset_color_pairs();
             delwin(input_box);
             curs_set(0);
             return;
@@ -249,20 +251,24 @@ int do_menu(struct menu *menu)
     if (!menu || !menu->entries)
         return 1;
 
+    int termx, termy;
+    getmaxyx(stdscr, termy, termx);
+
     int winy, winx;
     getmaxyx(menu->win, winy, winx);
+
+    keypad(menu->win, TRUE);
     box(menu->win, 0, 0);
 
     wmove(menu->win, 1, 1);
 
     draw_menu(menu);
-    wrefresh(menu->win);
 
     int ch;
     while ((ch = wgetch(menu->win))) {
         switch (ch) {
         case KEY_UP: ;
-            int prev_ent = get_prev_entry(menu);
+            int prev_ent = get_entry_whence(menu, PREVIOUS);
 
             if (menu->cur_entry != prev_ent) {
                 menu->cur_entry = prev_ent;
@@ -274,7 +280,7 @@ int do_menu(struct menu *menu)
 
             break;
         case KEY_DOWN: ;
-            int next_ent = get_next_entry(menu);
+            int next_ent = get_entry_whence(menu, NEXT);
 
             if (menu->cur_entry != next_ent) {
                 menu->cur_entry = next_ent;
@@ -327,11 +333,28 @@ int do_menu(struct menu *menu)
                 return -1;
             case ENTRY_INPUT:
                 get_input(&ent->input);
-                /* FIXME: Possibly inefficient */
+
                 redrawwin(stdscr);
+                wrefresh(stdscr);
+
+                draw_menu(menu);
+
+                for (int i = 0; menu->center[i].win; i++) {
+                    redrawwin(menu->center[i].win);
+                    wnoutrefresh(menu->center[i].win);
+                }
+
+                doupdate();
             }
 
             break;
+        case KEY_RESIZE:
+            getmaxyx(stdscr, termy, termx);
+
+            if (termy < 20 || termx < 50)
+                errx(1, "Needs at least a 50x20 to terminal to work.");
+
+            center_wins(menu->center, termy, termx);
         }
     }
 
