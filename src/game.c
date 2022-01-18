@@ -9,58 +9,85 @@
 int localplay(char **board) {return 1;}
 int pcplay(char **board) {return 1;}
 
-static void print_board(char **board)
+static void print_board(WINDOW *win, struct game *game, struct game_info *info)
 {
+    int curx, cury;
+    int winx, winy;
 
+    getmaxyx(win, winy, winx);
+    wmove(win, winy - 2, 1);
+
+    for (int i = 0; i < info->height; i++) {
+        for (int j = 0; j < info->width; j++) {
+            switch (game->board[i][j]) {
+            case NONE:
+                waddstr(win, "   ");
+                break;
+            default:
+                wattrset(win, COLOR_PAIR(game->board[i][j]));
+                /* Unicode fisheye character */
+                waddstr(win, "\342\227\211");
+                wattrset(win, COLOR_PAIR(0));
+
+                if (j < info->width - 1)
+                    waddstr(win, "  ");
+            }
+        }
+
+        getyx(win, cury, curx);
+
+        if (i < info->height - 1) {
+            wmove(win, cury - 1, 3);
+
+            for (int j = 0; j < info->width - 1; j++) {
+                waddch(win, '.');
+                getyx(win, cury, curx);
+                wmove(win, cury, curx + 2);
+            }
+        }
+
+        wmove(win, cury - 1, 1);
+    }
 }
 
 void start_game(struct game_info *info)
 {
+    redrawwin(stdscr);
+    wrefresh(stdscr);
+
     struct game game = {0};
-    game.board = calloc(info->width, info->height);
+    game.board = calloc(info->height, sizeof(char *));
 
+    for (int i = 0; i <= info->width; i++)
+        game.board[i] = calloc(info->width, 1);
 
-    if (!game.board)
-        errx(1, "failed to malloc()");
+    int termx, termy;
+    getmaxyx(stdscr, termy, termx);
 
-    int winx, winy;
-    getmaxyx(stdscr, winy, winx);
+    int winx = info->width * 3 + 2;
+    int winy = info->height * 2 + 3;
 
-    int offx = round((double)(winx - info->height + 6) / 2);
-    int offy = round((double)(winy - info->width + 2) / 2);
+    int offx = round((double)(termx - winx) / 2);
+    int offy = round((double)(termy - winy) / 2);
 
-    WINDOW *gamewin = newwin(info->height + 6, info->width + 2, offy, offx);
+    WINDOW *game_win = newwin(winy, winx, offy, offx);
+    keypad(game_win, TRUE);
 
+    init_pair(RED_CHECKER, COLOR_RED, COLOR_BLACK);
+    init_pair(YLW_CHECKER, COLOR_YELLOW, COLOR_BLACK);
 
-    switch (info->play_mode) {
-    case PLAY_PLPL:
-        game.play_func[0] = localplay;
-        game.play_func[1] = localplay;
+    box(game_win, 0, 0);
 
-        break;
-    case PLAY_PLPC:
-        game.play_func[0] = localplay;
-        game.play_func[1] = pcplay;
+    wmove(game_win, 0, 0);
+    wclrtoeol(game_win);
 
-        break;
-    case PLAY_PCPC:
-        game.play_func[0] = pcplay;
-        game.play_func[1] = pcplay;
-
-        break;
-    }
-
-    print_board(game.board);
+    print_board(game_win, &game, info);
 
     while (1) {
-#if 0
-        game.play_func[game.curplayer](game.board);
-
-        printboard(game.board);
-
-        game.curplayer = !game.curplayer;
-#else
-        wgetch(gamewin);
-#endif
     }
+
+    for (int i = 0; i <= info->width; i++)
+        free(game.board[i]);
+
+    free(game.board);
 }
