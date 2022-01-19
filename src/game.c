@@ -58,7 +58,7 @@ void start_game(struct game_info *info)
     struct game game = {0};
     game.board = calloc(info->height, sizeof(char *));
 
-    for (int i = 0; i <= info->width; i++)
+    for (int i = 0; i < info->height; i++)
         game.board[i] = calloc(info->width, 1);
 
     int termx, termy;
@@ -86,7 +86,7 @@ void start_game(struct game_info *info)
     while (1) {
     }
 
-    for (int i = 0; i <= info->width; i++)
+    for (int i = 0; i < info->height; i++)
         free(game.board[i]);
 
     free(game.board);
