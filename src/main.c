@@ -47,7 +47,7 @@ int main()
 
     int max_logo_width = 0;
 
-    for (int i = 0; logo[i]; i++) {
+    for (int i = 0; i < ARR_SIZE(logo); i++) {
         int len = utf8len(logo[i]);
 
         if (len > max_logo_width)
@@ -56,7 +56,7 @@ int main()
 
     struct menu menu = {0};
 
-    menu.center = calloc(2, sizeof(struct win_off));
+    menu.center = calloc(3, sizeof(struct win_off));
     menu.center[0].off_offy = -4;
     menu.center[1].off_offy = 4;
 
@@ -66,7 +66,7 @@ int main()
 
     menu.center[0].win = logo_win;
 
-    for (int i = 0; logo[i]; i++) {
+    for (int i = 0; i < ARR_SIZE(logo); i++) {
         waddstr(logo_win, logo[i]);
         wmove(logo_win, i + 1, 0);
     }
