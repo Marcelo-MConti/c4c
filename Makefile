@@ -14,7 +14,7 @@ else
 	NCURSES := ncurses
 endif
 
-LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo -lm
+LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 
 all: build c4c

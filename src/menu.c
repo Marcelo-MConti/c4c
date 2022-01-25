@@ -1,6 +1,5 @@
 #include <ncurses.h>
 #include <string.h>
-#include <math.h>
 
 #include <err.h>
 
@@ -135,12 +134,12 @@ static void get_input(struct in_ent *input)
 {
     init_pair(1, COLOR_RED, COLOR_BLACK);
 
-    int termx, termy;
-    getmaxyx(stdscr, termy, termx);
+    int COLS, LINES;
+    getmaxyx(stdscr, LINES, COLS);
 
     int winx = 30, winy = 5;
 
-    int offx = round((termx - winx) / 2);
+    int offx = (COLS - winx) / 2;
     int offy = 3;
 
     WINDOW *input_box = newwin(winy, winx, offy, offx);
@@ -251,12 +250,6 @@ int do_menu(struct menu *menu)
     if (!menu || !menu->entries)
         return 1;
 
-    int termx, termy;
-    getmaxyx(stdscr, termy, termx);
-
-    int winy, winx;
-    getmaxyx(menu->win, winy, winx);
-
     keypad(menu->win, TRUE);
     box(menu->win, 0, 0);
 
@@ -349,12 +342,9 @@ int do_menu(struct menu *menu)
 
             break;
         case KEY_RESIZE:
-            getmaxyx(stdscr, termy, termx);
+            CHECK_TERMSIZE();
 
-            if (termy < 20 || termx < 50)
-                errx(1, "Needs at least a 50x20 to terminal to work.");
-
-            center_wins(menu->center, termy, termx);
+            center_wins(menu->center);
         }
     }
 

@@ -2,9 +2,6 @@
 #include <string.h>
 #include <locale.h>
 #include <ncurses.h>
-#include <math.h>
-
-#include <err.h>
 
 #include "util.h"
 #include "logo.h"
@@ -34,11 +31,7 @@ int main()
     if (!has_colors())
         errx(1, "This terminal does not support colors, which is required for c4c to run.");
 
-    int termx, termy;
-    getmaxyx(stdscr, termy, termx);
-
-    if (termy < 20 || termx < 50)
-        errx(1, "Needs at least a 50x20 to terminal to work.");
+    CHECK_TERMSIZE();
 
     start_color();
     cbreak();
@@ -60,8 +53,8 @@ int main()
     menu.center[0].off_offy = -4;
     menu.center[1].off_offy = 4;
 
-    int offx = round((termx - max_logo_width) / 2);
-    int offy = round(((termy - ARR_SIZE(logo)) / 2) + menu.center[0].off_offy);
+    int offx = (COLS - max_logo_width) / 2;
+    int offy = (LINES - ARR_SIZE(logo)) / 2 + menu.center[0].off_offy;
     WINDOW *logo_win = newwin(ARR_SIZE(logo), max_logo_width, offy, offx);
 
     menu.center[0].win = logo_win;
@@ -73,8 +66,8 @@ int main()
 
     wrefresh(logo_win);
 
-    offx = round((termx - 30) / 2);
-    offy = round(((termy - 6) / 2) + menu.center[1].off_offy);
+    offx = (COLS - 30) / 2;
+    offy = (LINES - 6) / 2 + menu.center[1].off_offy;
     WINDOW *menu_win = newwin(6, 30, offy, offx);
 
     menu.center[1].win = menu_win;
@@ -107,26 +100,34 @@ int main()
         0
     };
 
-    int entry = do_menu(&menu);
+    while (1) {
+        int entry = do_menu(&menu);
 
-    switch (entry) {
-    case 0: ;
-        struct game_info gi;
-        gi.play_mode = menu.entries[2]->roulette.cur_option;
-        gi.x = 7;
-        gi.y = 6;
+        switch (entry) {
+        case 0: ;
+            struct game_info gi;
+            gi.play_mode = menu.entries[2]->roulette.cur_option;
+            gi.x = 7;
+            gi.y = 6;
 
-        start_game(&gi);
+            start_game(&gi);
 
-        break;
-    case 1:
-        nocbreak();
-        echo();
-        curs_set(1);
-        endwin();
+            break;
+        case 1:
+            nocbreak();
+            echo();
+            curs_set(1);
+            endwin();
 
-        free(menu.center);
+            free(menu.center);
 
-        return 0;
-   }
+            return 0;
+       }
+
+       redrawwin(stdscr);
+       wrefresh(stdscr);
+
+       redrawwin(logo_win);
+       wrefresh(logo_win);
+    }
 }

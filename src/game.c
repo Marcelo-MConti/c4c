@@ -1,8 +1,5 @@
 #include <ncurses.h>
 #include <stdlib.h>
-#include <math.h>
-
-#include <err.h>
 
 #include "util.h"
 #include "game.h"
@@ -44,6 +41,8 @@ static inline int is_nonempty_pos(struct game *game, struct game_info *info, str
 
     if (game->board[mv->y][mv->x] != NONE)
         return 1;
+    else
+        return 0;
 }
 
 static int check_win(struct game *game, struct game_info *info, struct move *mv)
@@ -97,7 +96,6 @@ static int check_win(struct game *game, struct game_info *info, struct move *mv)
 
 struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *info)
 {
-
     static struct move mv = {0};
 
     int ind = 0, ch, tmp;
@@ -141,13 +139,12 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
 
             break;
         case KEY_RESIZE:;
+            CHECK_TERMSIZE();
+
             struct win_off wins[2] = {0};
             wins[0].win = win;
 
-            int termx, termy;
-            getmaxyx(stdscr, termy, termx);
-
-            center_wins(wins, termy, termx);
+            center_wins(wins);
 
             break;
         }
@@ -164,11 +161,9 @@ static void print_board(WINDOW *win, struct game *game, struct game_info *info)
 
     for (int i = 0; i < info->y; i++) {
         for (int j = 0; j < info->x; j++) {
-            switch (game->board[i][j]) {
-            case NONE:
+            if (game->board[i][j] == NONE) {
                 waddstr(win, "   ");
-                break;
-            default:
+            } else {
                 wattrset(win, COLOR_PAIR(game->board[i][j]));
                 /* Unicode fisheye character */
                 waddstr(win, "\342\227\211");
@@ -206,14 +201,11 @@ void start_game(struct game_info *info)
     for (int i = 0; i < info->y; i++)
         game.board[i] = calloc(info->x, 1);
 
-    int termx, termy;
-    getmaxyx(stdscr, termy, termx);
-
     int winx = info->x * 3 + 2;
     int winy = info->y * 2 + 3;
 
-    int offx = round((double)(termx - winx) / 2);
-    int offy = round((double)(termy - winy) / 2);
+    int offx = (COLS - winx) / 2;
+    int offy = (LINES - winy) / 2;
 
     WINDOW *game_win = newwin(winy, winx, offy, offx);
     keypad(game_win, TRUE);
