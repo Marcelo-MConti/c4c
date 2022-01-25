@@ -113,8 +113,8 @@ int main()
     case 0: ;
         struct game_info gi;
         gi.play_mode = menu.entries[2]->roulette.cur_option;
-        gi.width = 7;
-        gi.height = 6;
+        gi.x = 7;
+        gi.y = 6;
 
         start_game(&gi);
 
