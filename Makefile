@@ -14,6 +14,10 @@ else
 	NCURSES := ncurses
 endif
 
+ifneq ($(origin ASCII), undefined)
+	CPPFLAGS += -DC4C_ASCII
+endif
+
 LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 

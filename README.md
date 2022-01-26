@@ -16,3 +16,6 @@ NOTES
   and a terminal and font that can render unicode characters.
 
  - To compile it, simply run `make -j`.
+
+ - If the variable `ASCII` is set when compiling, the game
+  will use ASCII characters instead of unicode ones.

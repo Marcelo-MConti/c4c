@@ -3,16 +3,17 @@
 
 #include "util.h"
 #include "game.h"
+#include "chars.h"
 
 /* the other 4 complimentary neighbours are just negated versions of these */
 const static struct move neighbour_pos[] = {
     { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }
 };
 
-static int col_is_not_full(char **board, struct game_info *info, int column)
+static int col_is_not_full(struct game *game, struct game_info *info, int column)
 {
     for (int i = 0; i < info->y; i++) {
-        if (board[i][column] == NONE)
+        if (game->board[i][column] == NONE)
             return i;
     }
 
@@ -25,11 +26,7 @@ static void print_arrow(WINDOW *win, int ind)
     getyx(win, cury, curx);
 
     wclrtoeol(win);
-
-    /* Unicode right block diagonal (U+1FB65) */
-    mvwaddstr(win, cury, ind * 3 + 1, "\360\237\255\245");
-    /* Unicode left  block diagonal (U+1FB5A) */
-    waddstr(win, "\360\237\255\232");
+    mvwaddstr(win, cury, ind * 3 + 1, arrow);
 }
 
 static inline int is_nonempty_pos(struct game *game, struct game_info *info, struct move *mv)
@@ -125,7 +122,7 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
             break;
         case '\n':
         case ' ':
-            if ((tmp = col_is_not_full(game->board, info, ind)) != -1) {
+            if ((tmp = col_is_not_full(game, info, ind)) != -1) {
                 mv.x  = ind;
                 mv.y = tmp;
 
@@ -159,17 +156,12 @@ static void print_board(WINDOW *win, struct game *game, struct game_info *info)
 
     for (int i = 0; i < info->y; i++) {
         for (int j = 0; j < info->x; j++) {
-            if (game->board[i][j] == NONE) {
-                waddstr(win, "   ");
-            } else {
-                wattrset(win, COLOR_PAIR(game->board[i][j]));
-                /* Unicode fisheye character */
-                waddstr(win, "\342\227\211");
-                wattrset(win, COLOR_PAIR(0));
+            wattrset(win, COLOR_PAIR(game->board[i][j]));
+            waddstr(win, checkers[game->board[i][j]]);
+            wattrset(win, COLOR_PAIR(0));
 
-                if (j < info->x - 1)
-                    waddstr(win, "  ");
-            }
+            if (j < info->x - 1)
+                waddstr(win, "  ");
         }
 
         getyx(win, cury, curx);
@@ -236,6 +228,8 @@ void start_game(struct game_info *info)
         print_board(game_win, &game, info);
 
         if (check_win(&game, info, mv)) {
+            wrefresh(game_win);
+
             offy = (LINES - 3) / 2;
             offx = (COLS - 20) / 2;
 
@@ -253,6 +247,8 @@ void start_game(struct game_info *info)
 
         curplayer = !curplayer;
     }
+
+    delwin(game_win);
 
     for (int i = 0; i < info->y; i++)
         free(game.board[i]);

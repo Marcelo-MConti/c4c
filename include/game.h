@@ -16,7 +16,7 @@ struct game_info {
 };
 
 struct game {
-    char **board;
+    unsigned char **board;
     struct move *(*make_move[2])(WINDOW *, struct game *, struct game_info *);
     unsigned char cur_player;
 };
