@@ -145,8 +145,6 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
             wins[0].win = win;
 
             center_wins(wins);
-
-            break;
         }
     }
 }
@@ -238,7 +236,18 @@ void start_game(struct game_info *info)
         print_board(game_win, &game, info);
 
         if (check_win(&game, info, mv)) {
-            // add winning message
+            offy = (LINES - 3) / 2;
+            offx = (COLS - 20) / 2;
+
+            WINDOW *msg_win = newwin(3, 20, offy, offx);
+
+            box(msg_win, 0, 0);
+
+            mvwprintw(msg_win, 1, 4, "Player %d won.", curplayer + 1);
+            wgetch(msg_win);
+
+            delwin(msg_win);
+
             break;
         }
 
