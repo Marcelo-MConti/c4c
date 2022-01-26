@@ -120,6 +120,20 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
             }
 
             break;
+        case KEY_HOME:
+            ind = 0;
+
+            wmove(win, 0, 1);
+            print_arrow(win, ind);
+
+            break;
+        case KEY_END:
+            ind = info->x - 1;
+
+            wmove(win, 0, 1);
+            print_arrow(win, ind);
+
+            break;
         case '\n':
         case ' ':
             if ((tmp = col_is_not_full(game, info, ind)) != -1) {
