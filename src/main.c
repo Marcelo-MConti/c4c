@@ -28,12 +28,14 @@ int main()
     setlocale(LC_CTYPE, "");
     initscr();
 
+#ifndef C4C_ASCII
     if (!has_colors())
         errx(1, "This terminal does not support colors, which is required for c4c to run.");
+    start_color();
+#endif
 
     CHECK_TERMSIZE();
 
-    start_color();
     cbreak();
     noecho();
     curs_set(0);
@@ -105,12 +107,7 @@ int main()
 
         switch (entry) {
         case 0: ;
-            struct game_info gi;
-            gi.play_mode = menu.entries[2]->roulette.cur_option;
-            gi.x = 7;
-            gi.y = 6;
-
-            start_game(&gi);
+            start_game(7, 6, menu.entries[2]->roulette.cur_option);
 
             break;
         case 1:
