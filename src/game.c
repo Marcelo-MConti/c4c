@@ -6,9 +6,9 @@
 #include "game.h"
 #include "chars.h"
 
-/* the other 4 complimentary neighbours are just negated versions of these */
 const static struct move neighbour_pos[] = {
-    { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }
+    { 0,  1 }, {  1,  1 }, {  1,  0 }, {  1, -1 },
+    { 0, -1 }, { -1, -1 }, { -1,  0 }, { -1,  1 }
 };
 
 static int col_is_not_full(struct game *game, int column)
@@ -41,11 +41,11 @@ static inline bool is_nonempty_pos(struct game *game, struct move *mv)
 static bool check_win(struct game *game, struct move *mv)
 {
     if (game->board[mv->y][mv->x] == NONE)
-        return 0;
+        return false;
 
     char same_neighbours[4] = {0};
 
-    for (int i = 0; i < ARR_SIZE(neighbour_pos); i++) {
+    for (int i = 0; i < 8; i++) {
         struct move chk_pos = { mv->x, mv->y };
 
         for (int j = 0; j < 4; j++) {
@@ -54,22 +54,7 @@ static bool check_win(struct game *game, struct move *mv)
 
             if (is_nonempty_pos(game, &chk_pos) &&
                     game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
-                same_neighbours[i]++;
-            else
-                break;
-        }
-    }
-
-    for (int i = 0; i < ARR_SIZE(neighbour_pos); i++) {
-        struct move chk_pos = { mv->x, mv->y };
-
-        for (int j = 0; j < 4; j++) {
-            chk_pos.x -= neighbour_pos[i].x;
-            chk_pos.y -= neighbour_pos[i].y;
-
-            if (is_nonempty_pos(game, &chk_pos) &&
-                    game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
-                same_neighbours[i]++;
+                same_neighbours[i % 4]++;
             else
                 break;
         }
