@@ -11,10 +11,7 @@ enum {
     NEXT
 };
 
-/* @ret: 0 - entry was not drawn due to being conditional and condition being false
- *       1 - entry was drawn
- */
-static int draw_entry(struct menu *menu, int index)
+static bool draw_entry(struct menu *menu, int index)
 {
     int winy, winx;
     int cury, curx;
@@ -27,15 +24,14 @@ static int draw_entry(struct menu *menu, int index)
         if (ent->conditional.condition(menu))
             ent = ent->conditional.entry;
         else
-            return 0;
+            return false;
     }
 
-    if (index == menu->cur_entry)
-        mvwaddch(menu->win, cury, 2, '*' | A_BOLD);
-    else
-        mvwaddch(menu->win, cury, 2, ' ');
+    mvwaddch(menu->win, cury, 2,
+            index == menu->cur_entry ? '*' | A_BOLD : ' ');
 
     switch (ent->common.type) {
+    case ENTRY_TEXT:
     case ENTRY_SELECTABLE: ;
         /* -2 for the borders */
         int newx = winx - strlen(ent->text.text) - 2;
@@ -70,7 +66,7 @@ static int draw_entry(struct menu *menu, int index)
         return -1;
     }
 
-    return 1;
+    return true;
 }
 
 /* @ret: visual index of selected entry */
@@ -86,14 +82,12 @@ static int draw_menu(struct menu *menu)
     for (int i = 0; menu->entries[i]; i++) {
         getyx(menu->win, cury, curx);
 
-        switch (draw_entry(menu, i)) {
-        case -1:
-            return -1;
-        case 1:
+        if (draw_entry(menu, i)) {
             if (i == menu->cur_entry)
                 tmp = cury;
-
             wmove(menu->win, cury + 1, 1);
+        } else {
+            return -1;
         }
     }
 
@@ -111,10 +105,7 @@ static int get_entry_whence(struct menu *menu, int whence)
         if (whence == PREVIOUS && inc == 0)
             return 0;
 
-        if (whence == PREVIOUS)
-            ent = menu->entries[--inc];
-        else
-            ent = menu->entries[++inc];
+        ent = menu->entries[whence == PREVIOUS ? --inc : ++inc];
 
         if (whence == NEXT && !ent)
             return menu->cur_entry;
@@ -122,124 +113,129 @@ static int get_entry_whence(struct menu *menu, int whence)
         if (ent->common.type == ENTRY_CONDITIONAL) {
             if (ent->conditional.condition(menu))
                 return inc;
+            // else continue;
         } else {
             return inc;
         }
     }
 }
 
-/* get user input and then validate it
- * FIXME: Add bounds checking */
+/* draw the input bar */
+static void draw_input(WINDOW *win, int x, int y, int width,
+        struct in_ent *input, int str_ind, int curs_pos, int len)
+{
+    wmove(win, y, x);
+    fill(win, x, width, '#' | A_BOLD);
+
+    for (int i = str_ind - curs_pos;
+            i - (str_ind - curs_pos) < width && i < len; i++)
+        waddch(win, input->buf[i]);
+
+    wmove(win, y, x + (curs_pos >= width ? width - 1 : curs_pos));
+}
+
+
+/* get user input and then validate it */
 static void get_input(struct in_ent *input)
 {
     init_pair(1, COLOR_RED, COLOR_BLACK);
 
-    int COLS, LINES;
-    getmaxyx(stdscr, LINES, COLS);
+    int inwidth = 28;
 
-    int winx = 30, winy = 5;
+    int winx = inwidth + 2, winy = 5;
+    int offx = (COLS - winx) / 2, offy = 3;
+    int cury, curx;
 
-    int offx = (COLS - winx) / 2;
-    int offy = 3;
+    WINDOW *inbox = newwin(winy, winx, offy, offx);
 
-    WINDOW *input_box = newwin(winy, winx, offy, offx);
-
-    keypad(input_box, TRUE);
+    keypad(inbox, TRUE);
     curs_set(1);
-    box(input_box, 0, 0);
+    box(inbox, 0, 0);
 
-    int ch, cury, curx, len = 0, cur_ind = 0;
+    int str_ind = 0, curs_pos = 0;
+    int len = input->buf[0] ? strlen(input->buf) : 0;
+    draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
 
-    wmove(input_box, 3, 1);
-    fill(input_box, 1, winx - 2, '#' | A_BOLD);
-
-    if (input->buf[0]) {
-        len = strlen(input->buf);
-        waddstr(input_box, input->buf);
-    }
-
-    wmove(input_box, 3, 1);
-
-    while ((ch = wgetch(input_box))) {
-        getyx(input_box, cury, curx);
-
+    int ch;
+    while ((ch = wgetch(inbox))) {
+        getyx(inbox, cury, curx);
         switch (ch) {
         case KEY_LEFT:
-            if (cur_ind > 0) {
-                cur_ind--;
-                wmove(input_box, cury, curx - 1);
+            if (str_ind > 0) {
+                if (curs_pos > 0)
+                    curs_pos--;
+
+                draw_input(inbox, 1, 3, inwidth, input, --str_ind, curs_pos, len);
             }
 
             break;
         case KEY_RIGHT:
-            if (cur_ind < len) {
-                cur_ind++;
-                wmove(input_box, cury, curx + 1);
-            }
+            if (str_ind < len) {
+                if (curs_pos < inwidth)
+                    curs_pos++;
 
-            break;
-        case '\n':
-            if (input->validate && input->buf[0] != 0) {
-                char *err = input->validate(input->buf);
-
-                if (err) {
-                    fill(input_box, 1, winx - 2, ' ');
-
-                    wattrset(input_box, COLOR_PAIR(1));
-                    mvwaddstr(input_box, 1, (winx - strlen(err)) / 2, err);
-                    wattrset(input_box, COLOR_PAIR(0));
-
-                    wmove(input_box, 3, 1);
-                    fill(input_box, 1, winx - 2, '#' | A_BOLD);
-
-                    input->buf[0] = 0;
-                    cur_ind = 0;
-                    len = 0;
-
-                    continue;
-                }
-            }
-
-            reset_color_pairs();
-            delwin(input_box);
-            curs_set(0);
-            return;
-        case KEY_DC:
-            if (cur_ind >= 0 && cur_ind < len) {
-                memmove(input->buf + cur_ind, input->buf + cur_ind + 1, len - cur_ind);
-
-                len--;
-
-                input->buf[len] = 0;
-                mvwaddstr(input_box, cury, 1, input->buf);
-
-                waddch(input_box, '#' | A_BOLD);
-                wmove(input_box, cury, curx);
+                draw_input(inbox, 1, 3, inwidth, input, ++str_ind, curs_pos, len);
             }
 
             break;
         case KEY_HOME:
-            cur_ind = 0;
-            wmove(input_box, cury, 1);
+            if (str_ind != 0 && curs_pos != 0) {
+                str_ind = 0;
+                curs_pos = 0;
+
+                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
+            }
 
             break;
         case KEY_END:
-            cur_ind = len;
-            wmove(input_box, cury, len + 1);
+            if (str_ind != len && curs_pos != len % inwidth) {
+                str_ind = len;
+                curs_pos = len % inwidth;
+
+                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
+            }
 
             break;
-        default:
-            if (curx + 2 != winx && ch >= ' ' && ch <= '~') {
-                memmove(input->buf + cur_ind + 1, input->buf + cur_ind, len - cur_ind);
-                input->buf[cur_ind++] = ch;
+        case '\n':
+            if (input->validate && input->buf[0]) {
+                char *err = input->validate(input->buf);
 
-                len++;
+                if (err) {
+                    fill(inbox, 1, inwidth, ' ');
+                    wattrset(inbox, COLOR_PAIR(1));
+                    mvwaddstr(inbox, 1, (inwidth - strlen(err)) / 2, err);
+                    wattrset(inbox, COLOR_PAIR(0));
 
-                input->buf[len] = 0;
-                mvwaddstr(input_box, cury, 1, input->buf);
-
-                wmove(input_box, cury, curx + 1);
+                    draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
+                    continue;
+                }
             }
+
+            delwin(inbox);
+            curs_set(0);
+
+            return;
+        case KEY_DC:
+            if (str_ind < len) {
+                memmove(&input->buf[str_ind], &input->buf[str_ind + 1], len-- - str_ind);
+                input->buf[len] = 0;
+
+                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
+            }
+
+            break;
+        case ' ' ... '~':
+            if (len < input->bufsize) {
+                memmove(&input->buf[str_ind + 1], &input->buf[str_ind], len++ - str_ind);
+                input->buf[str_ind++] = ch;
+
+                if (curs_pos < inwidth)
+                    curs_pos++;
+
+                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
+            }
+
+            break;
         }
     }
 }
