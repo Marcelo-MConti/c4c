@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "util.h"
 #include "game.h"
@@ -10,9 +11,9 @@ const static struct move neighbour_pos[] = {
     { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }
 };
 
-static int col_is_not_full(struct game *game, struct game_info *info, int column)
+static int col_is_not_full(struct game *game, int column)
 {
-    for (int i = 0; i < info->y; i++) {
+    for (int i = 0; i < game->y; i++) {
         if (game->board[i][column] == NONE)
             return i;
     }
@@ -29,20 +30,15 @@ static void print_arrow(WINDOW *win, int ind)
     mvwaddstr(win, cury, ind * 3 + 1, arrow);
 }
 
-static inline int is_nonempty_pos(struct game *game, struct game_info *info, struct move *mv)
+static inline bool is_nonempty_pos(struct game *game, struct move *mv)
 {
-    if (mv->x < 0 || mv->y < 0)
-        return 0;
-    if (mv->x >= info->x || mv->y >= info->y)
-        return 0;
+    if ((mv->x < 0 || mv->y < 0) || (mv->x >= game->x || mv->y >= game->y))
+        return false;
 
-    if (game->board[mv->y][mv->x] != NONE)
-        return 1;
-    else
-        return 0;
+    return game->board[mv->y][mv->x] != NONE;
 }
 
-static int check_win(struct game *game, struct game_info *info, struct move *mv)
+static bool check_win(struct game *game, struct move *mv)
 {
     if (game->board[mv->y][mv->x] == NONE)
         return 0;
@@ -56,10 +52,8 @@ static int check_win(struct game *game, struct game_info *info, struct move *mv)
             chk_pos.x += neighbour_pos[i].x;
             chk_pos.y += neighbour_pos[i].y;
 
-            if (!is_nonempty_pos(game, info, &chk_pos))
-                break;
-
-            if (game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
+            if (is_nonempty_pos(game, &chk_pos) &&
+                    game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
                 same_neighbours[i]++;
             else
                 break;
@@ -73,10 +67,8 @@ static int check_win(struct game *game, struct game_info *info, struct move *mv)
             chk_pos.x -= neighbour_pos[i].x;
             chk_pos.y -= neighbour_pos[i].y;
 
-            if (!is_nonempty_pos(game, info, &chk_pos))
-                break;
-
-            if (game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
+            if (is_nonempty_pos(game, &chk_pos) &&
+                    game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
                 same_neighbours[i]++;
             else
                 break;
@@ -85,13 +77,13 @@ static int check_win(struct game *game, struct game_info *info, struct move *mv)
 
     for (int i = 0; i < 4; i++) {
         if (same_neighbours[i] >= 3)
-            return 1;
+            return true;
     }
 
-    return 0;
+    return false;
 }
 
-struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *info)
+struct move *local_make_move(WINDOW *win, struct game *game)
 {
     static struct move mv = {0};
 
@@ -112,7 +104,7 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
 
             break;
         case KEY_RIGHT:
-            if (ind < info->x - 1) {
+            if (ind < game->x - 1) {
                 ind++;
 
                 wmove(win, 0, 1);
@@ -128,7 +120,7 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
 
             break;
         case KEY_END:
-            ind = info->x - 1;
+            ind = game->x - 1;
 
             wmove(win, 0, 1);
             print_arrow(win, ind);
@@ -136,8 +128,8 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
             break;
         case '\n':
         case ' ':
-            if ((tmp = col_is_not_full(game, info, ind)) != -1) {
-                mv.x  = ind;
+            if ((tmp = col_is_not_full(game, ind)) != -1) {
+                mv.x = ind;
                 mv.y = tmp;
 
                 wmove(win, 0, 1);
@@ -149,7 +141,7 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
             }
 
             break;
-        case KEY_RESIZE:;
+        case KEY_RESIZE:
             CHECK_TERMSIZE();
 
             struct win_off wins[2] = {0};
@@ -160,7 +152,7 @@ struct move *local_make_move(WINDOW *win, struct game *game, struct game_info *i
     }
 }
 
-static void print_board(WINDOW *win, struct game *game, struct game_info *info)
+static void print_board(WINDOW *win, struct game *game)
 {
     int curx, cury;
     int winx, winy;
@@ -168,22 +160,22 @@ static void print_board(WINDOW *win, struct game *game, struct game_info *info)
     getmaxyx(win, winy, winx);
     wmove(win, winy - 2, 1);
 
-    for (int i = 0; i < info->y; i++) {
-        for (int j = 0; j < info->x; j++) {
+    for (int i = 0; i < game->y; i++) {
+        for (int j = 0; j < game->x; j++) {
             wattrset(win, COLOR_PAIR(game->board[i][j]));
             waddstr(win, checkers[game->board[i][j]]);
             wattrset(win, COLOR_PAIR(0));
 
-            if (j < info->x - 1)
+            if (j < game->x - 1)
                 waddstr(win, "  ");
         }
 
         getyx(win, cury, curx);
 
-        if (i < info->y - 1) {
+        if (i < game->y - 1) {
             wmove(win, cury - 1, 3);
 
-            for (int j = 0; j < info->x - 1; j++) {
+            for (int j = 0; j < game->x - 1; j++) {
                 waddch(win, '.');
                 getyx(win, cury, curx);
                 wmove(win, cury, curx + 2);
@@ -194,19 +186,21 @@ static void print_board(WINDOW *win, struct game *game, struct game_info *info)
     }
 }
 
-void start_game(struct game_info *info)
+void start_game(int x, int y, enum playmode pm)
 {
     redrawwin(stdscr);
     wrefresh(stdscr);
 
-    struct game game = {0};
-    game.board = calloc(info->y, sizeof(char *));
+    struct game game = {
+        .x = x, .y = y,
+        .board = calloc(y, sizeof(char *))
+    };
 
-    for (int i = 0; i < info->y; i++)
-        game.board[i] = calloc(info->x, 1);
+    for (int i = 0; i < game.y; i++)
+        game.board[i] = calloc(game.x, 1);
 
-    int winx = info->x * 3 + 2;
-    int winy = info->y * 2 + 3;
+    int winx = game.x * 3 + 2;
+    int winy = game.y * 2 + 3;
 
     int offx = (COLS - winx) / 2;
     int offy = (LINES - winy) / 2;
@@ -222,26 +216,24 @@ void start_game(struct game_info *info)
     wmove(game_win, 0, 0);
     wclrtoeol(game_win);
 
-    switch (info->play_mode) {
+    switch (pm) {
     case PLAY_PLPL:
         game.make_move[0] = local_make_move;
         game.make_move[1] = local_make_move;
     }
 
-    print_board(game_win, &game, info);
+    print_board(game_win, &game);
 
     int curplayer = 0;
     while (1) {
-        struct move *mv = game.make_move[curplayer](game_win, &game, info);
+        struct move *mv = game.make_move[curplayer](game_win, &game);
 
-        if (curplayer == 0)
-            game.board[mv->y][mv->x] = RED_CHECKER;
-        else
-            game.board[mv->y][mv->x] = YLW_CHECKER;
+        game.board[mv->y][mv->x] = (curplayer == 0) ?
+            RED_CHECKER : YLW_CHECKER;
 
-        print_board(game_win, &game, info);
+        print_board(game_win, &game);
 
-        if (check_win(&game, info, mv)) {
+        if (check_win(&game, mv)) {
             wrefresh(game_win);
 
             offy = (LINES - 3) / 2;
@@ -264,7 +256,7 @@ void start_game(struct game_info *info)
 
     delwin(game_win);
 
-    for (int i = 0; i < info->y; i++)
+    for (int i = 0; i < game.y; i++)
         free(game.board[i]);
 
     free(game.board);

@@ -10,15 +10,11 @@ enum playmode {
     PLAY_NET
 };
 
-struct game_info {
-    short play_mode;
-    int x, y;
-};
-
 struct game {
     unsigned char **board;
-    struct move *(*make_move[2])(WINDOW *, struct game *, struct game_info *);
+    struct move *(*make_move[2])(WINDOW *, struct game *);
     unsigned char cur_player;
+    unsigned int x, y;
 };
 
 struct move {
@@ -26,11 +22,11 @@ struct move {
 };
 
 enum position {
-    NONE,
+    NONE = 0,
     RED_CHECKER,
     YLW_CHECKER
 };
 
-void start_game(struct game_info *info);
+void start_game(int x, int y, enum playmode);
 
 #endif /* _GAME_H_ */
