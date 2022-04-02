@@ -1,4 +1,4 @@
-CFLAGS ?= -O2
+CFLAGS ?= -O2 -std=gnu2x
 CPPFLAGS ?= -Iinclude -MMD
 
 SOURCES := $(wildcard src/*.c)
@@ -44,6 +44,3 @@ clean:
 
 build/%.o: src/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(PKGCFLAGS) -c -o $@ $<
-
-include/logo.h: res/logo
-	scripts/genlogo.sh $< $@
