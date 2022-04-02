@@ -24,9 +24,13 @@ void fill(WINDOW *win, int from, int to, int ch)
 void print_truncate(WINDOW *win, char *str, int len, int trunc)
 {
     if (len > trunc) {
+#ifdef C4C_ASCII
+        waddnstr(win, str, trunc - 3);
+        waddstr(win, "...");
+#else
         waddnstr(win, str, trunc - 1);
-        /* Ellipsis character */
-        waddstr(win, "\342\200\246");
+        waddstr(win, u8"…");
+#endif
     } else {
         waddnstr(win, str, len);
     }
