@@ -25,9 +25,6 @@ enum entry_type {
     ENTRY_CONDITIONAL
 };
 
-/* Generic union for an entry, uses C99
- * common initial sequence to avoid casting
- */
 union entry_un;
 
 struct menu {
@@ -43,18 +40,19 @@ struct menu {
 };
 
 struct entry {
-    int type;
+    enum entry_type type;
 };
 
 /* ENTRY_SELECTABLE | ENTRY_TEXT */
 struct text_ent {
-    int type;
+    enum entry_type type;
     char *text;
 };
 
 /* ENTRY_ROULETTE */
 struct roul_ent {
-    int type, cur_option;
+    enum entry_type type;
+    int cur_option;
     char *text;
     /* @alt corresponds to the legends for each value */
     char **alt;
@@ -62,7 +60,8 @@ struct roul_ent {
 
 /* ENTRY_INPUT */
 struct in_ent {
-    int type, bufsize;
+    enum entry_type type;
+    int bufsize;
     char *text, *buf;
     /* @ret: NULL if validated succesfully, error message otherwise */
     char *(*validate)(char *buf);
@@ -70,7 +69,7 @@ struct in_ent {
 
 /* ENTRY_CONDITIONAL */
 struct cond_ent {
-    int type;
+    enum entry_type type;
     union entry_un *entry;
     int (*condition)(struct menu *menu);
 };
