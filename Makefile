@@ -18,6 +18,10 @@ ifneq ($(origin ASCII), undefined)
 	CPPFLAGS += -DC4C_ASCII
 endif
 
+ifeq ($(origin NOCOLOR), undefined)
+	CPPFLAGS += -DC4C_COLOR
+endif
+
 LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 

@@ -28,7 +28,7 @@ int main()
     setlocale(LC_CTYPE, "");
     initscr();
 
-#ifndef C4C_ASCII
+#ifdef C4C_COLOR
     if (!has_colors())
         errx(1, "This terminal does not support colors, which is required for c4c to run.");
     start_color();
