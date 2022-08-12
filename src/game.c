@@ -133,6 +133,12 @@ struct move *local_make_move(WINDOW *win, struct game *game)
             wins[0].win = win;
 
             center_wins(wins);
+            break;
+        case '1' ... '7':
+            ind = ch - '1';
+
+            wmove(win, 0, 1);
+            print_arrow(win, ind);
         }
     }
 }
