@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
-#include <ncurses.h>
+#include <curses.h>
 
 #include "util.h"
 #include "logo.h"
 #include "game.h"
 #include "menu.h"
+#include "center.h"
 
 char *validate_host(char *buf)
 {
@@ -18,7 +19,7 @@ char *validate_host(char *buf)
 
 int check_netplay(struct menu *menu)
 {
-    struct roul_ent *entry = &menu->entries[2]->roulette;
+    struct roul_ent *entry = &(*menu->entries)[2]->roulette;
     return entry->cur_option == PLAY_NET;
 }
 
@@ -40,44 +41,17 @@ int main()
     noecho();
     curs_set(0);
 
+    center_init();
+
     int max_logo_width = 0;
-
-    for (int i = 0; i < ARR_SIZE(logo); i++) {
+    for (size_t i = 0; i < ARR_SIZE(logo); i++) {
         int len = utf8len(logo[i]);
-
         if (len > max_logo_width)
             max_logo_width = len;
     }
 
     struct menu menu = {0};
-
-    menu.center = calloc(3, sizeof(struct win_off));
-    menu.center[0].off_offy = -4;
-    menu.center[1].off_offy = 4;
-
-    int offx = (COLS - max_logo_width) / 2;
-    int offy = (LINES - ARR_SIZE(logo)) / 2 + menu.center[0].off_offy;
-    WINDOW *logo_win = newwin(ARR_SIZE(logo), max_logo_width, offy, offx);
-
-    menu.center[0].win = logo_win;
-
-    for (int i = 0; i < ARR_SIZE(logo); i++) {
-        waddstr(logo_win, logo[i]);
-        wmove(logo_win, i + 1, 0);
-    }
-
-    wrefresh(logo_win);
-
-    offx = (COLS - 30) / 2;
-    offy = (LINES - 6) / 2 + menu.center[1].off_offy;
-    WINDOW *menu_win = newwin(6, 30, offy, offx);
-
-    menu.center[1].win = menu_win;
-    menu.win = menu_win;
-
-    menu.center[2].win = NULL;
-
-    menu.entries = (union entry_un *[]) {
+    union entry_un *entries[] = (union entry_un *[]) {
         (union entry_un *) (struct text_ent []) {{
             ENTRY_SELECTABLE, "START"
         }},
@@ -87,8 +61,8 @@ int main()
         }},
 
         (union entry_un *) (struct roul_ent []) {{
-            ENTRY_ROULETTE, 0, "PMODE",
-            (char *[]) { "PL. VS. PL.", "PLAYER VS. PC", "PC VS. PC", "NETPLAY", 0 },
+            ENTRY_ROULETTE, 0, "PLAY MODE",
+            (char *[]) { "PL VS. PL", "PL VS. PC", "PC VS. PC", "NETPLAY", 0 }
         }},
 
         (union entry_un *) (struct cond_ent []) {{
@@ -99,15 +73,43 @@ int main()
             check_netplay
         }},
 
+        (union entry_un *) (struct cond_ent []) {{
+            ENTRY_CONDITIONAL,
+            (union entry_un *) (struct roul_ent []) {{
+                ENTRY_ROULETTE, 0, "P2P MODE",
+                (char *[]) { "SERVER", "CLIENT", 0 }
+            }},
+            check_netplay
+        }},
+
         0
     };
+    menu.entries = &entries;
+
+    int winy = ARR_SIZE(logo) + ARR_SIZE(entries) - 1 + 6, winx = MAX(max_logo_width, 30);
+    WINDOW *main_win = newwin(winy, winx, 30, 30);
+
+    WINDOW *logo_win = derwin(main_win, ARR_SIZE(logo), winx, 0, 0);
+
+    int logox = (winx - max_logo_width) / 2;
+    for (int i = 0; i < ARR_SIZE(logo); i++) {
+        wmove(logo_win, i, logox);
+        waddstr(logo_win, logo[i]);
+    }
+
+    WINDOW *menu_win = derwin(main_win, 7, winx, ARR_SIZE(logo) + 1, 0);
+    menu.win = menu_win;
+
+    center_win_add(main_win, 0, 0, 0);
+    center_win_trigger();
+    refresh();
 
     while (1) {
         int entry = do_menu(&menu);
 
         switch (entry) {
         case 0: ;
-            start_game(7, 6, menu.entries[2]->roulette.cur_option);
+            start_game(7, 6, (*menu.entries)[2]->roulette.cur_option);
 
             break;
         case 1:
@@ -116,15 +118,10 @@ int main()
             curs_set(1);
             endwin();
 
-            free(menu.center);
-
             return 0;
        }
 
-       redrawwin(stdscr);
-       wrefresh(stdscr);
-
-       redrawwin(logo_win);
-       wrefresh(logo_win);
+       redrawwin(main_win);
+       wrefresh(main_win);
     }
 }

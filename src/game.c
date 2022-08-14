@@ -1,4 +1,4 @@
-#include <ncurses.h>
+#include <curses.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,8 +13,10 @@ const static struct move neighbour_pos[] = {
 
 static int col_is_not_full(struct game *game, int column)
 {
+    enum position (*board)[game->x] = game->board;
+
     for (int i = 0; i < game->y; i++) {
-        if (game->board[i][column] == NONE)
+        if (board[i][column] == NONE)
             return i;
     }
 
@@ -35,12 +37,14 @@ static inline bool is_nonempty_pos(struct game *game, struct move *mv)
     if ((mv->x < 0 || mv->y < 0) || (mv->x >= game->x || mv->y >= game->y))
         return false;
 
-    return game->board[mv->y][mv->x] != NONE;
+    enum position (*board)[game->x] = game->board;
+    return board[mv->y][mv->x] != NONE;
 }
 
 static bool check_win(struct game *game, struct move *mv)
 {
-    if (game->board[mv->y][mv->x] == NONE)
+    enum position (*board)[game->x] = game->board;
+    if (board[mv->y][mv->x] == NONE)
         return false;
 
     char same_neighbours[4] = {0};
@@ -53,7 +57,7 @@ static bool check_win(struct game *game, struct move *mv)
             chk_pos.y += neighbour_pos[i].y;
 
             if (is_nonempty_pos(game, &chk_pos) &&
-                    game->board[mv->y][mv->x] == game->board[chk_pos.y][chk_pos.x])
+                    board[mv->y][mv->x] == board[chk_pos.y][chk_pos.x])
                 same_neighbours[i % 4]++;
             else
                 break;
@@ -129,10 +133,10 @@ struct move *local_make_move(WINDOW *win, struct game *game)
         case KEY_RESIZE:
             CHECK_TERMSIZE();
 
-            struct win_off wins[2] = {0};
-            wins[0].win = win;
+//            struct win_off wins[2] = {0};
+//            wins[0].win = win;
 
-            center_wins(wins);
+//            center_wins(wins);
             break;
         case '1' ... '7':
             ind = ch - '1';
@@ -151,10 +155,12 @@ static void print_board(WINDOW *win, struct game *game)
     getmaxyx(win, winy, winx);
     wmove(win, winy - 2, 1);
 
+    enum position (*board)[game->x] = game->board;
+
     for (int i = 0; i < game->y; i++) {
         for (int j = 0; j < game->x; j++) {
-            wattrset(win, COLOR_PAIR(game->board[i][j]));
-            waddstr(win, checkers[game->board[i][j]]);
+            wattrset(win, COLOR_PAIR(board[i][j]));
+            waddstr(win, checkers[board[i][j]]);
             wattrset(win, COLOR_PAIR(0));
 
             if (j < game->x - 1)
@@ -184,11 +190,8 @@ void start_game(int x, int y, enum playmode pm)
 
     struct game game = {
         .x = x, .y = y,
-        .board = calloc(y, sizeof(char *))
+        .board = calloc(1, sizeof(enum position[y][x]))
     };
-
-    for (int i = 0; i < game.y; i++)
-        game.board[i] = calloc(game.x, 1);
 
     int winx = game.x * 3 + 2;
     int winy = game.y * 2 + 3;
@@ -215,11 +218,12 @@ void start_game(int x, int y, enum playmode pm)
 
     print_board(game_win, &game);
 
+    enum position (*board)[game.x] = game.board;
     int curplayer = 0;
     while (1) {
         struct move *mv = game.make_move[curplayer](game_win, &game);
 
-        game.board[mv->y][mv->x] = (curplayer == 0) ?
+        board[mv->y][mv->x] = (curplayer == 0) ?
             RED_CHECKER : YLW_CHECKER;
 
         print_board(game_win, &game);
@@ -246,9 +250,6 @@ void start_game(int x, int y, enum playmode pm)
     }
 
     delwin(game_win);
-
-    for (int i = 0; i < game.y; i++)
-        free(game.board[i]);
 
     free(game.board);
 }

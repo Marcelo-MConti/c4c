@@ -1,7 +1,7 @@
 #ifndef _GAME_H_
 #define _GAME_H_
 
-#include <ncurses.h>
+#include <curses.h>
 
 enum playmode {
     PLAY_PLPL,
@@ -10,8 +10,14 @@ enum playmode {
     PLAY_NET
 };
 
+enum position {
+    NONE = 0,
+    RED_CHECKER,
+    YLW_CHECKER
+};
+
 struct game {
-    unsigned char **board;
+    enum position (*board)[];
     struct move *(*make_move[2])(WINDOW *, struct game *);
     unsigned char cur_player;
     unsigned int x, y;
@@ -19,12 +25,6 @@ struct game {
 
 struct move {
     int x, y;
-};
-
-enum position {
-    NONE = 0,
-    RED_CHECKER,
-    YLW_CHECKER
 };
 
 void start_game(int x, int y, enum playmode);

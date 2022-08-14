@@ -6,12 +6,12 @@
 #ifdef C4C_ASCII
 const static char *arrow = "\\/";
 const static char *checkers[] = {
-    [NONE] = " ", "#", "O"
+    [NONE] = " ", [RED_CHECKER] = "#", [YLW_CHECKER] = "O"
 };
 #else
 const static char *arrow = u8"🭥🭚";
 const static char *checkers[] = {
-    [NONE] = " ", u8"◉", u8"◉"
+    [NONE] = " ", [RED_CHECKER] = u8"◉", [YLW_CHECKER] = u8"◉"
 };
 #endif
 

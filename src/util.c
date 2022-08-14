@@ -35,27 +35,3 @@ void print_truncate(WINDOW *win, char *str, int len, int trunc)
         waddnstr(win, str, len);
     }
 }
-
-/* FIXME: Make the centering less janky */
-void center_wins(struct win_off *wins)
-{
-    int offx, offy;
-    int winx, winy;
-
-    redrawwin(stdscr);
-    wrefresh(stdscr);
-
-    for (int i = 0; wins[i].win; i++) {
-        getmaxyx(wins[i].win, winy, winx);
-
-        offx = (COLS - winx) / 2 + wins[i].off_offx;
-        offy = (LINES - winy) / 2 + wins[i].off_offy;
-
-        mvwin(wins[i].win, offy, offx);
-
-        redrawwin(wins[i].win);
-        wnoutrefresh(wins[i].win);
-    }
-
-    doupdate();
-}

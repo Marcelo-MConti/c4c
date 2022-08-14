@@ -1,10 +1,11 @@
-#include <ncurses.h>
+#include <curses.h>
 #include <string.h>
 
 #include <err.h>
 
 #include "util.h"
 #include "menu.h"
+#include "center.h"
 
 enum {
     PREVIOUS,
@@ -13,12 +14,12 @@ enum {
 
 static bool draw_entry(struct menu *menu, int index)
 {
-    int winy, winx;
+    int winx;
     int cury, curx;
-    getmaxyx(menu->win, winy, winx);
+    getmaxyx(menu->win, (int){0}, winx);
     getyx(menu->win, cury, curx);
 
-    union entry_un *ent = menu->entries[index];
+    union entry_un *ent = (*menu->entries)[index];
 
     if (ent->common.type == ENTRY_CONDITIONAL) {
         if (ent->conditional.condition(menu))
@@ -79,7 +80,7 @@ static int draw_menu(struct menu *menu)
 
     int cury, curx, tmp = -1;
 
-    for (int i = 0; menu->entries[i]; i++) {
+    for (int i = 0; (*menu->entries)[i]; i++) {
         getyx(menu->win, cury, curx);
 
         if (draw_entry(menu, i)) {
@@ -105,7 +106,7 @@ static int get_entry_whence(struct menu *menu, int whence)
         if (whence == PREVIOUS && inc == 0)
             return 0;
 
-        ent = menu->entries[whence == PREVIOUS ? --inc : ++inc];
+        ent = (*menu->entries)[whence == PREVIOUS ? --inc : ++inc];
 
         if (whence == NEXT && !ent)
             return menu->cur_entry;
@@ -144,9 +145,12 @@ static void get_input(struct in_ent *input)
 
     int winx = inwidth + 2, winy = 5;
     int offx = (COLS - winx) / 2, offy = 3;
-    int cury, curx;
+    int curx;
 
     WINDOW *inbox = newwin(winy, winx, offy, offx);
+
+    center_win_add(inbox, 10, -winy, 0);
+    center_win_trigger();
 
     keypad(inbox, TRUE);
     curs_set(1);
@@ -158,7 +162,7 @@ static void get_input(struct in_ent *input)
 
     int ch;
     while ((ch = wgetch(inbox))) {
-        getyx(inbox, cury, curx);
+        getyx(inbox, (int){0}, curx);
         switch (ch) {
         case KEY_LEFT:
             if (str_ind > 0) {
@@ -211,6 +215,7 @@ static void get_input(struct in_ent *input)
                 }
             }
 
+            center_win_remove(inbox);
             delwin(inbox);
             curs_set(0);
 
@@ -240,7 +245,7 @@ static void get_input(struct in_ent *input)
     }
 }
 
-/* makes a centered menu with the corresponding entries */
+/* makes a menu with the corresponding entries */
 int do_menu(struct menu *menu)
 {
     if (!menu || !menu->entries)
@@ -248,13 +253,25 @@ int do_menu(struct menu *menu)
 
     keypad(menu->win, TRUE);
     box(menu->win, 0, 0);
-
     wmove(menu->win, 1, 1);
 
     draw_menu(menu);
 
+    WINDOW *parent = wgetparent(menu->win);
+
     int ch;
-    while ((ch = wgetch(menu->win))) {
+    while ((ch = wgetch(menu->win)) != ERR) {
+        union entry_un *ent = (*menu->entries)[menu->cur_entry];
+
+        if (ent->common.type == ENTRY_CONDITIONAL)
+            ent = ent->conditional.entry;
+
+        clearok(parent, TRUE);
+        wnoutrefresh(parent);
+        clearok(stdscr, TRUE);
+        wnoutrefresh(stdscr);
+        doupdate();
+
         switch (ch) {
         case KEY_UP: ;
             int prev_ent = get_entry_whence(menu, PREVIOUS);
@@ -281,8 +298,8 @@ int do_menu(struct menu *menu)
 
             break;
         case KEY_LEFT:
-            if (menu->entries[menu->cur_entry]->common.type == ENTRY_ROULETTE) {
-                struct roul_ent *tmp = &menu->entries[menu->cur_entry]->roulette;
+            if (ent->common.type == ENTRY_ROULETTE) {
+                struct roul_ent *tmp = &ent->roulette;
 
                 if (tmp->cur_option != 0) {
                     tmp->cur_option--;
@@ -295,8 +312,8 @@ int do_menu(struct menu *menu)
 
             break;
         case KEY_RIGHT:
-            if (menu->entries[menu->cur_entry]->common.type == ENTRY_ROULETTE) {
-                struct roul_ent *tmp = &menu->entries[menu->cur_entry]->roulette;
+            if (ent->common.type == ENTRY_ROULETTE) {
+                struct roul_ent *tmp = &ent->roulette;
 
                 if (tmp->alt[tmp->cur_option + 1]) {
                     tmp->cur_option++;
@@ -310,11 +327,6 @@ int do_menu(struct menu *menu)
             break;
         case '\n':
         case ' ': ;
-            union entry_un *ent = menu->entries[menu->cur_entry];
-
-            if (ent->common.type == ENTRY_CONDITIONAL)
-                ent = ent->conditional.entry;
-
             switch (ent->common.type) {
             case ENTRY_SELECTABLE:
                 return menu->cur_entry;
@@ -328,20 +340,19 @@ int do_menu(struct menu *menu)
 
                 draw_menu(menu);
 
-                for (int i = 0; menu->center[i].win; i++) {
-                    redrawwin(menu->center[i].win);
-                    wnoutrefresh(menu->center[i].win);
-                }
-
                 doupdate();
             }
 
             break;
         case KEY_RESIZE:
             CHECK_TERMSIZE();
-
-            center_wins(menu->center);
         }
+
+        clearok(stdscr, TRUE);
+        redrawwin(stdscr);
+        redrawwin(parent);
+        wnoutrefresh(parent);
+        doupdate();
     }
 
     return -1;

@@ -1,7 +1,7 @@
 #ifndef _MENU_H_
 #define _MENU_H_
 
-#include <ncurses.h>
+#include <curses.h>
 
 /* ENTRY_SELECTABLE: Creates a selectable entry
  * Menu will return index of the entry
@@ -30,13 +30,8 @@ union entry_un;
 struct menu {
     int cur_entry;
     /* Must be NULL-terminated */
-    union entry_un **entries;
+    union entry_un *(*entries)[];
     WINDOW *win;
-    /* These windows will be kept centered as the terminal is resized
-     * Must be dynamically allocated so that windows created for input
-     * entries can also be added to the list
-     */
-    struct win_off *center;
 };
 
 struct entry {
