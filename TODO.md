@@ -7,4 +7,4 @@
         (just weird)
  
   - [ ] Implement netplay with threads (decide on a message format and
-        transport protocol for message passing)
+        transport protocol for message passing --- either UDP or TCP)
