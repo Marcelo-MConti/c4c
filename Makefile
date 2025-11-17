@@ -22,7 +22,7 @@ ifeq ($(origin NOCOLOR), undefined)
 	CPPFLAGS += -DC4C_COLOR
 endif
 
-LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo
+LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo -lm
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 
 all: build c4c
