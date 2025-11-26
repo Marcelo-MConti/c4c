@@ -1,32 +1,36 @@
 #ifndef _GAME_H_
 #define _GAME_H_
 
+#include <stdint.h>
 #include <curses.h>
 
-enum playmode {
+#define DEFAULT_PORT 36540
+
+enum play_mode {
     PLAY_PLPL,
     PLAY_PLPC,
     PLAY_PCPC,
     PLAY_NET
 };
 
-enum position {
+enum tile {
     NONE = 0,
     RED_CHECKER,
     YLW_CHECKER
 };
 
 struct game {
-    enum position (*board)[];
-    struct move *(*make_move[2])(WINDOW *, struct game *);
-    unsigned char cur_player;
-    unsigned int x, y;
+    enum tile (*board)[];
+    uint8_t cur_player;
+    int width, height;
 };
 
-struct move {
+typedef int32_t move_t;
+
+struct position {
     int x, y;
 };
 
-void start_game(int x, int y, enum playmode);
+void start_game(int width, int height, enum play_mode);
 
 #endif /* _GAME_H_ */

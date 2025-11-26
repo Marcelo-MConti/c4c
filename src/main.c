@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
@@ -7,20 +8,110 @@
 #include "logo.h"
 #include "game.h"
 #include "menu.h"
-#include "center.h"
 
-char *validate_host(char *buf)
+#if !defined(C4C_ASCII) && !defined(C4C_COLOR)
+#error "Enable either ASCII mode or color support (the game is unplayable otherwise)"
+#endif
+
+enum main_menu_entry {
+    MM_ENTRY_START,
+    MM_ENTRY_QUIT,
+    MM_ENTRY_PLAYMODE,
+    MM_ENTRY_NETPLAY_HOST,
+    MM_ENTRY_LAST
+};
+
+// Validates a host string. The host string should either be of the form
+// `HOST:PORT` or `HOST`. If a port isn't supplied, the default value is
+// used.
+const char *menu_validate_host(char *buf)
 {
-    if (strchr(buf, ':'))
+    static const char *invalid_v6 = "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'.";
+    static const char *invalid_host = "Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain name or IPv4/6 address.";
+
+    char *colon = strchr(buf, ':');
+    char *v6end = NULL;
+    
+    // Assume it's an IPv6 address if it has two colons or uses brackets
+    if (colon && strchr(colon, ':')) {
+        colon = v6end = strchr(buf, '\0');
+    } else if (buf[0] == '[') {
+        v6end = strchr(buf, ']');
+        colon = v6end + 1;
+
+        if (*colon != ':') 
+            return invalid_v6;
+    } else {
+        for (char *s = buf; *s != ':' && *s != '\0'; s++) {
+            if (!isalnum(*s) && *s != '.' && *s != '-')
+                return invalid_host;
+        }
+    }
+
+    if (v6end) {
+        for (char *s = buf; s != v6end; s++) {
+            if (*s != ':' && !isdigit(*s) && tolower(*s) < 'a' && tolower(*s) > 'f')
+                return invalid_v6;
+        }
+    }
+
+    if (!colon || *colon == '\0')
+        return NULL;
+
+    unsigned long port = strtoul(colon + 1, NULL, 10);
+
+    if (port > 1024 && port < 65536)
         return NULL;
     else
-        return "Host format: host:port";
+        return invalid_host;
 }
 
-int check_netplay(struct menu *menu)
+bool menu_condition_netplay(struct menu *menu)
 {
-    struct roul_ent *entry = &(*menu->entries)[2]->roulette;
-    return entry->cur_option == PLAY_NET;
+    struct roul_ent *play_mode = &(*menu->entries)[MM_ENTRY_PLAYMODE]->roulette;
+    return play_mode->cur_option == PLAY_NET;
+}
+
+static union entry_un *main_menu_entries[] = (union entry_un *[]) {
+    [MM_ENTRY_START] = &(union entry_un) { .text = {
+        ENTRY_SELECTABLE, "START"
+    }},
+    [MM_ENTRY_QUIT] = &(union entry_un) { .text = {
+        ENTRY_SELECTABLE, "QUIT"
+    }},
+    [MM_ENTRY_PLAYMODE] = &(union entry_un) { .roulette = {
+        ENTRY_ROULETTE, 0, "PLAY MODE",
+        (char *[]) { "PL vs. PL", "PL vs. PC", "PC vs. PC", "NETPLAY", NULL }
+    }},
+    [MM_ENTRY_NETPLAY_HOST] = &(union entry_un) { .conditional = {
+        ENTRY_CONDITIONAL,
+        &(union entry_un) { .input = {
+            ENTRY_INPUT, 255, "HOST", (char [256]) {0}, menu_validate_host
+        }},
+        menu_condition_netplay
+    }},
+    [MM_ENTRY_LAST] = NULL
+};
+
+struct redraw_menu_ctx {
+    WINDOW *main_win;
+    WINDOW *logo_win;
+
+    int max_logo_width;
+
+    int main_win_width;
+    int main_win_height;
+};
+
+void on_redraw_menu(WINDOW *menu_win, void *ctx) {
+    struct redraw_menu_ctx *redraw = ctx;
+
+    int y_offset = (LINES - redraw->main_win_height) / 2;
+    int x_offset = (COLS - redraw->main_win_width) / 2;
+
+    mvwin(redraw->main_win, y_offset, x_offset);
+
+    wnoutrefresh(redraw->main_win);
 }
 
 int main()
@@ -31,94 +122,72 @@ int main()
 
 #ifdef C4C_COLOR
     if (!has_colors())
-        errx(1, "This terminal does not support colors, which is required for c4c to run.");
+        errx(1, "This terminal does not support colors, which is required for c4c to run.\n"
+                "Either find a terminal that supports colors or recompile c4c without color support.");
+
     start_color();
 #endif
-
-    CHECK_TERMSIZE();
 
     cbreak();
     noecho();
     curs_set(0);
 
-    center_init();
-
     int max_logo_width = 0;
+    
     for (size_t i = 0; i < ARR_SIZE(logo); i++) {
         int len = utf8len(logo[i]);
         if (len > max_logo_width)
             max_logo_width = len;
     }
 
-    struct menu menu = {0};
-    union entry_un *entries[] = (union entry_un *[]) {
-        (union entry_un *) (struct text_ent []) {{
-            ENTRY_SELECTABLE, "START"
-        }},
+    int main_win_height = ARR_SIZE(logo) + ARR_SIZE(main_menu_entries) - 1 + 6;
+    int main_win_width = MAX(max_logo_width, 30);
+    
+    WINDOW *main_win = newwin(main_win_height, main_win_width, 30, 30);
+    WINDOW *logo_win = derwin(main_win, ARR_SIZE(logo), main_win_width, 0, 0);
 
-        (union entry_un *) (struct text_ent []) {{
-            ENTRY_SELECTABLE, "QUIT"
-        }},
-
-        (union entry_un *) (struct roul_ent []) {{
-            ENTRY_ROULETTE, 0, "PLAY MODE",
-            (char *[]) { "PL VS. PL", "PL VS. PC", "PC VS. PC", "NETPLAY", 0 }
-        }},
-
-        (union entry_un *) (struct cond_ent []) {{
-            ENTRY_CONDITIONAL,
-            (union entry_un *) (struct in_ent []) {{
-                ENTRY_INPUT, 255, "HOST", (char [256]) {0}, validate_host
-            }},
-            check_netplay
-        }},
-
-        (union entry_un *) (struct cond_ent []) {{
-            ENTRY_CONDITIONAL,
-            (union entry_un *) (struct roul_ent []) {{
-                ENTRY_ROULETTE, 0, "P2P MODE",
-                (char *[]) { "SERVER", "CLIENT", 0 }
-            }},
-            check_netplay
-        }},
-
-        0
-    };
-    menu.entries = &entries;
-
-    int winy = ARR_SIZE(logo) + ARR_SIZE(entries) - 1 + 6, winx = MAX(max_logo_width, 30);
-    WINDOW *main_win = newwin(winy, winx, 30, 30);
-
-    WINDOW *logo_win = derwin(main_win, ARR_SIZE(logo), winx, 0, 0);
-
-    int logox = (winx - max_logo_width) / 2;
+    int logo_width = (main_win_width - max_logo_width) / 2;
+    
     for (int i = 0; i < ARR_SIZE(logo); i++) {
-        wmove(logo_win, i, logox);
+        wmove(logo_win, i, logo_width);
         waddstr(logo_win, logo[i]);
     }
 
-    WINDOW *menu_win = derwin(main_win, 7, winx, ARR_SIZE(logo) + 1, 0);
-    menu.win = menu_win;
+    WINDOW *menu_win = derwin(main_win, 7, main_win_width, ARR_SIZE(logo) + 1, 0);
+    
+    struct menu main_menu = {
+        .entries = &main_menu_entries,
+        .win = menu_win
+    };
+    
+    struct redraw_menu_ctx redraw_ctx = {
+        .logo_win = logo_win,
+        .main_win = main_win,
+        .max_logo_width = max_logo_width,        
+        .main_win_height = main_win_height,
+        .main_win_width = main_win_width,
+    };
 
-    center_win_add(main_win, 0, 0, 0);
-    center_win_trigger();
-    refresh();
-
-    while (1) {
-        int entry = do_menu(&menu);
+    while (true) {
+        on_redraw_menu(menu_win, &redraw_ctx);
+        doupdate();
+        
+        int entry = do_menu(&main_menu, on_redraw_menu, &redraw_ctx);
 
         switch (entry) {
-        case 0: ;
-            start_game(7, 6, (*menu.entries)[2]->roulette.cur_option);
+            case MM_ENTRY_START: ;
+                enum play_mode mode = (*main_menu.entries)[MM_ENTRY_PLAYMODE]->roulette.cur_option;
+                start_game(7, 6, mode);
 
-            break;
-        case 1:
-            nocbreak();
-            echo();
-            curs_set(1);
-            endwin();
+                break;
+            case -1:
+            case MM_ENTRY_QUIT:
+                nocbreak();
+                echo();
+                curs_set(1);
+                endwin();
 
-            return 0;
+                return 0;
        }
 
        redrawwin(main_win);

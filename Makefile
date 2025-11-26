@@ -1,8 +1,7 @@
-CFLAGS ?= -O2 -std=gnu2x
-CPPFLAGS ?= -Iinclude -MMD
+BUILD ?= build
 
 SOURCES := $(wildcard src/*.c)
-OBJECTS := $(patsubst src/%.c,build/%.o,$(SOURCES))
+OBJECTS := $(SOURCES:src/%.c=$(BUILD)/%.o)
 
 PREFIX ?= /usr/local
 
@@ -22,16 +21,19 @@ ifeq ($(origin NOCOLOR), undefined)
 	CPPFLAGS += -DC4C_COLOR
 endif
 
+ALLCFLAGS := -Wall -O2 -std=gnu23 $(CFLAGS)
+ALLCPPFLAGS := -Iinclude -MMD $(CPPFLAGS)
+
 LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo -lm
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 
-all: build c4c
+all: $(BUILD)/ c4c
 
-build:
+%/:
 	mkdir $@
 
 c4c: $(OBJECTS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(PKGCFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(ALLCPPFLAGS) $(ALLCFLAGS) $(PKGCFLAGS) -o $@ $^ $(LIBS)
 
 install: all
 	install -D c4c $(DESTDIR)$(PREFIX)/bin/c4c
@@ -41,10 +43,10 @@ uninstall:
 
 clean:
 	rm -f c4c $(OBJECTS) $(OBJECTS:.o=.d)
-	rm -f -d build
+	rm -f -d $(BUILD)
 
 -include  $(OBJECTS:.o=.d)
 .PHONY: all install uninstall clean
 
-build/%.o: src/%.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(PKGCFLAGS) -c -o $@ $<
+$(BUILD)/%.o: src/%.c
+	$(CC) $(ALLCPPFLAGS) $(ALLCFLAGS) $(PKGCFLAGS) -c -o $@ $<

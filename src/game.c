@@ -6,16 +6,16 @@
 #include "game.h"
 #include "chars.h"
 
-const static struct move neighbour_pos[] = {
+const static struct position neighbour_pos[] = {
     { 0,  1 }, {  1,  1 }, {  1,  0 }, {  1, -1 },
     { 0, -1 }, { -1, -1 }, { -1,  0 }, { -1,  1 }
 };
 
 static int col_is_not_full(struct game *game, int column)
 {
-    enum position (*board)[game->x] = game->board;
+    enum tile (*board)[game->width] = game->board;
 
-    for (int i = 0; i < game->y; i++) {
+    for (int i = 0; i < game->height; i++) {
         if (board[i][column] == NONE)
             return i;
     }
@@ -32,32 +32,33 @@ static void print_arrow(WINDOW *win, int ind)
     mvwaddstr(win, cury, ind * 3 + 1, arrow);
 }
 
-static inline bool is_nonempty_pos(struct game *game, struct move *mv)
+static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos)
 {
-    if ((mv->x < 0 || mv->y < 0) || (mv->x >= game->x || mv->y >= game->y))
+    if ((pos->x < 0 || pos->y < 0) || (pos->x >= game->width || pos->y >= game->height))
         return false;
 
-    enum position (*board)[game->x] = game->board;
-    return board[mv->y][mv->x] != NONE;
+    enum tile (*board)[game->width] = game->board;
+    return board[pos->y][pos->x] != NONE;
 }
 
-static bool check_win(struct game *game, struct move *mv)
+static bool check_win(struct game *game, struct position *pos)
 {
-    enum position (*board)[game->x] = game->board;
-    if (board[mv->y][mv->x] == NONE)
+    enum tile (*board)[game->width] = game->board;
+
+    if (board[pos->y][pos->x] == NONE)
         return false;
 
     char same_neighbours[4] = {0};
 
     for (int i = 0; i < 8; i++) {
-        struct move chk_pos = { mv->x, mv->y };
+        struct position chk_pos = { pos->x, pos->y };
 
         for (int j = 0; j < 4; j++) {
             chk_pos.x += neighbour_pos[i].x;
             chk_pos.y += neighbour_pos[i].y;
 
-            if (is_nonempty_pos(game, &chk_pos) &&
-                    board[mv->y][mv->x] == board[chk_pos.y][chk_pos.x])
+            if (is_valid_nonempty_pos(game, &chk_pos) &&
+                    board[pos->y][pos->x] == board[chk_pos.y][chk_pos.x])
                 same_neighbours[i % 4]++;
             else
                 break;
@@ -72,78 +73,75 @@ static bool check_win(struct game *game, struct move *mv)
     return false;
 }
 
-struct move *local_make_move(WINDOW *win, struct game *game)
+struct position *local_make_move(WINDOW *win, struct game *game)
 {
-    static struct move mv = {0};
-
-    int ind = 0, ch, tmp;
+    static struct position pos = {0};
+    int idx = pos.x, ch, tmp;
 
     wmove(win, 0, 1);
-    print_arrow(win, ind);
+    print_arrow(win, idx);
 
-    while ((ch = wgetch(win))) {
+    while (true) {
+        ch = wgetch(win);
+        
         switch (ch) {
-        case KEY_LEFT:
-            if (ind != 0) {
-                ind--;
+            case KEY_LEFT:
+                if (idx != 0) {
+                    idx--;
+
+                    wmove(win, 0, 1);
+                    print_arrow(win, idx);
+                }
+
+                break;
+            case KEY_RIGHT:
+                if (idx != game->width - 1) {
+                    idx++;
+
+                    wmove(win, 0, 1);
+                    print_arrow(win, idx);
+                }
+
+                break;
+            case KEY_HOME:
+                idx = 0;
 
                 wmove(win, 0, 1);
-                print_arrow(win, ind);
-            }
+                print_arrow(win, idx);
 
-            break;
-        case KEY_RIGHT:
-            if (ind < game->x - 1) {
-                ind++;
+                break;
+            case KEY_END:
+                idx = game->width - 1;
 
                 wmove(win, 0, 1);
-                print_arrow(win, ind);
-            }
+                print_arrow(win, idx);
 
-            break;
-        case KEY_HOME:
-            ind = 0;
+                break;
+            case '\n':
+            case ' ':
+                if ((tmp = col_is_not_full(game, idx)) != -1) {
+                    pos.x = idx;
+                    pos.y = tmp;
 
-            wmove(win, 0, 1);
-            print_arrow(win, ind);
+                    wmove(win, 0, 1);
+                    wclrtoeol(win);
 
-            break;
-        case KEY_END:
-            ind = game->x - 1;
+                    return &pos;
+                } else {
+                    // XXX: show error message
+                }
 
-            wmove(win, 0, 1);
-            print_arrow(win, ind);
+                break;
+            case KEY_RESIZE:
+                // XXX: check terminal size
 
-            break;
-        case '\n':
-        case ' ':
-            if ((tmp = col_is_not_full(game, ind)) != -1) {
-                mv.x = ind;
-                mv.y = tmp;
+                break;
+            case '1' ... '7':
+                idx = ch - '1';
 
                 wmove(win, 0, 1);
-                wclrtoeol(win);
-
-                return &mv;
-            } else {
-                // show error message
+                print_arrow(win, idx);
             }
-
-            break;
-        case KEY_RESIZE:
-            CHECK_TERMSIZE();
-
-//            struct win_off wins[2] = {0};
-//            wins[0].win = win;
-
-//            center_wins(wins);
-            break;
-        case '1' ... '7':
-            ind = ch - '1';
-
-            wmove(win, 0, 1);
-            print_arrow(win, ind);
-        }
     }
 }
 
@@ -155,24 +153,24 @@ static void print_board(WINDOW *win, struct game *game)
     getmaxyx(win, winy, winx);
     wmove(win, winy - 2, 1);
 
-    enum position (*board)[game->x] = game->board;
+    enum tile (*board)[game->width] = game->board;
 
-    for (int i = 0; i < game->y; i++) {
-        for (int j = 0; j < game->x; j++) {
+    for (int i = 0; i < game->height; i++) {
+        for (int j = 0; j < game->width; j++) {
             wattrset(win, COLOR_PAIR(board[i][j]));
             waddstr(win, checkers[board[i][j]]);
             wattrset(win, COLOR_PAIR(0));
 
-            if (j < game->x - 1)
+            if (j < game->height - 1)
                 waddstr(win, "  ");
         }
 
         getyx(win, cury, curx);
 
-        if (i < game->y - 1) {
+        if (i < game->height - 1) {
             wmove(win, cury - 1, 3);
 
-            for (int j = 0; j < game->x - 1; j++) {
+            for (int j = 0; j < game->width - 1; j++) {
                 waddch(win, '.');
                 getyx(win, cury, curx);
                 wmove(win, cury, curx + 2);
@@ -183,23 +181,23 @@ static void print_board(WINDOW *win, struct game *game)
     }
 }
 
-void start_game(int x, int y, enum playmode pm)
+void start_game(int width, int height, enum play_mode mode)
 {
     redrawwin(stdscr);
     wrefresh(stdscr);
 
     struct game game = {
-        .x = x, .y = y,
-        .board = calloc(1, sizeof(enum position[y][x]))
+        .width = width, .height = height,
+        .board = calloc(1, sizeof(enum tile[height][width]))
     };
 
-    int winx = game.x * 3 + 2;
-    int winy = game.y * 2 + 3;
+    int win_width = game.width * 3 + 2;
+    int win_height = game.height * 2 + 3;
 
-    int offx = (COLS - winx) / 2;
-    int offy = (LINES - winy) / 2;
+    int x_offset = (COLS - win_width) / 2;
+    int y_offset = (LINES - win_height) / 2;
 
-    WINDOW *game_win = newwin(winy, winx, offy, offx);
+    WINDOW *game_win = newwin(win_height, win_width, y_offset, x_offset);
     keypad(game_win, TRUE);
 
     init_pair(RED_CHECKER, COLOR_RED, COLOR_BLACK);
@@ -210,18 +208,18 @@ void start_game(int x, int y, enum playmode pm)
     wmove(game_win, 0, 0);
     wclrtoeol(game_win);
 
-    switch (pm) {
-    case PLAY_PLPL:
-        game.make_move[0] = local_make_move;
-        game.make_move[1] = local_make_move;
-    }
+    // switch (mode) {
+    // case PLAY_PLPL:
+    //     game.make_move[0] = local_make_move;
+    //     game.make_move[1] = local_make_move;
+    // }
 
     print_board(game_win, &game);
 
-    enum position (*board)[game.x] = game.board;
+    enum tile (*board)[game.width] = game.board;
     int curplayer = 0;
     while (1) {
-        struct move *mv = game.make_move[curplayer](game_win, &game);
+        struct position *mv = local_make_move(game_win, &game);
 
         board[mv->y][mv->x] = (curplayer == 0) ?
             RED_CHECKER : YLW_CHECKER;
@@ -231,10 +229,10 @@ void start_game(int x, int y, enum playmode pm)
         if (check_win(&game, mv)) {
             wrefresh(game_win);
 
-            offy = (LINES - 3) / 2;
-            offx = (COLS - 20) / 2;
+            y_offset = (LINES - 3) / 2 - 10;
+            x_offset = (COLS - 20) / 2;
 
-            WINDOW *msg_win = newwin(3, 20, offy, offx);
+            WINDOW *msg_win = newwin(3, 20, y_offset, x_offset);
 
             box(msg_win, 0, 0);
 

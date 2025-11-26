@@ -59,14 +59,14 @@ struct in_ent {
     int bufsize;
     char *text, *buf;
     /* @ret: NULL if validated succesfully, error message otherwise */
-    char *(*validate)(char *buf);
+    const char *(*validate)(char *buf);
 };
 
 /* ENTRY_CONDITIONAL */
 struct cond_ent {
     enum entry_type type;
     union entry_un *entry;
-    int (*condition)(struct menu *menu);
+    bool (*condition)(struct menu *menu);
 };
 
 union entry_un {
@@ -80,6 +80,6 @@ union entry_un {
 /* Shows a menu on the specified window
  * Returns when an option is selected
  */
-int do_menu(struct menu *menu);
+int do_menu(struct menu *menu, void (*redraw)(WINDOW *menu_win, void *ctx), void *ctx);
 
 #endif /* _MENU_H_ */

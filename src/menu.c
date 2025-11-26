@@ -5,7 +5,6 @@
 
 #include "util.h"
 #include "menu.h"
-#include "center.h"
 
 enum {
     PREVIOUS,
@@ -111,13 +110,10 @@ static int get_entry_whence(struct menu *menu, int whence)
         if (whence == NEXT && !ent)
             return menu->cur_entry;
 
-        if (ent->common.type == ENTRY_CONDITIONAL) {
-            if (ent->conditional.condition(menu))
-                return inc;
-            // else continue;
-        } else {
-            return inc;
-        }
+        if (ent->common.type == ENTRY_CONDITIONAL && !ent->conditional.condition(menu))
+            continue;
+
+        return inc;
     }
 }
 
@@ -137,7 +133,7 @@ static void draw_input(WINDOW *win, int x, int y, int width,
 
 
 /* get user input and then validate it */
-static void get_input(struct in_ent *input)
+static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *), WINDOW *menu_win, void *ctx)
 {
     init_pair(1, COLOR_RED, COLOR_BLACK);
 
@@ -149,107 +145,110 @@ static void get_input(struct in_ent *input)
 
     WINDOW *inbox = newwin(winy, winx, offy, offx);
 
-    center_win_add(inbox, 10, -winy, 0);
-    center_win_trigger();
-
     keypad(inbox, TRUE);
     curs_set(1);
     box(inbox, 0, 0);
 
-    int str_ind = 0, curs_pos = 0;
+    int str_idx = 0, curs_pos = 0;
     int len = input->buf[0] ? strlen(input->buf) : 0;
-    draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
+    draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
 
     int ch;
     while ((ch = wgetch(inbox))) {
         getyx(inbox, (int){0}, curx);
+        
         switch (ch) {
-        case KEY_LEFT:
-            if (str_ind > 0) {
-                if (curs_pos > 0)
-                    curs_pos--;
+            case KEY_LEFT:
+                if (str_idx > 0) {
+                    if (curs_pos > 0)
+                        curs_pos--;
 
-                draw_input(inbox, 1, 3, inwidth, input, --str_ind, curs_pos, len);
-            }
-
-            break;
-        case KEY_RIGHT:
-            if (str_ind < len) {
-                if (curs_pos < inwidth)
-                    curs_pos++;
-
-                draw_input(inbox, 1, 3, inwidth, input, ++str_ind, curs_pos, len);
-            }
-
-            break;
-        case KEY_HOME:
-            if (str_ind != 0 && curs_pos != 0) {
-                str_ind = 0;
-                curs_pos = 0;
-
-                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
-            }
-
-            break;
-        case KEY_END:
-            if (str_ind != len && curs_pos != len % inwidth) {
-                str_ind = len;
-                curs_pos = len % inwidth;
-
-                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
-            }
-
-            break;
-        case '\n':
-            if (input->validate && input->buf[0]) {
-                char *err = input->validate(input->buf);
-
-                if (err) {
-                    fill(inbox, 1, inwidth, ' ');
-                    wattrset(inbox, COLOR_PAIR(1));
-                    mvwaddstr(inbox, 1, (inwidth - strlen(err)) / 2, err);
-                    wattrset(inbox, COLOR_PAIR(0));
-
-                    draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
-                    continue;
+                    draw_input(inbox, 1, 3, inwidth, input, --str_idx, curs_pos, len);
                 }
-            }
 
-            center_win_remove(inbox);
-            delwin(inbox);
-            curs_set(0);
+                break;
+            case KEY_RIGHT:
+                if (str_idx < len) {
+                    if (curs_pos < inwidth)
+                        curs_pos++;
 
-            return;
-        case KEY_DC:
-            if (str_ind < len) {
-                memmove(&input->buf[str_ind], &input->buf[str_ind + 1], len-- - str_ind);
-                input->buf[len] = 0;
+                    draw_input(inbox, 1, 3, inwidth, input, ++str_idx, curs_pos, len);
+                }
 
-                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
-            }
+                break;
+            case KEY_HOME:
+                if (str_idx != 0 && curs_pos != 0) {
+                    str_idx = 0;
+                    curs_pos = 0;
 
-            break;
-        case ' ' ... '~':
-            if (len < input->bufsize) {
-                memmove(&input->buf[str_ind + 1], &input->buf[str_ind], len++ - str_ind);
-                input->buf[str_ind++] = ch;
+                    draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
+                }
 
-                if (curs_pos < inwidth)
-                    curs_pos++;
+                break;
+            case KEY_END:
+                if (str_idx != len && curs_pos != len % inwidth) {
+                    str_idx = len;
+                    curs_pos = len % inwidth;
 
-                draw_input(inbox, 1, 3, inwidth, input, str_ind, curs_pos, len);
-            }
+                    draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
+                }
 
-            break;
+                break;
+            case '\n':
+                if (input->validate && input->buf[0]) {
+                    const char *err = input->validate(input->buf);
+
+                    if (err) {
+                        fill(inbox, 1, inwidth, ' ');
+                        wattrset(inbox, COLOR_PAIR(1));
+                        mvwaddstr(inbox, 1, (inwidth - strlen(err)) / 2, err);
+                        wattrset(inbox, COLOR_PAIR(0));
+
+                        draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
+                        continue;
+                    }
+                }
+
+                delwin(inbox);
+                curs_set(0);
+
+                return;
+            case KEY_DC:
+                if (str_idx < len) {
+                    memmove(&input->buf[str_idx], &input->buf[str_idx + 1], len-- - str_idx);
+                    input->buf[len] = 0;
+
+                    draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
+                }
+
+                break;
+            case ' ' ... '~':
+                if (len < input->bufsize) {
+                    memmove(&input->buf[str_idx + 1], &input->buf[str_idx], len++ - str_idx);
+                    input->buf[str_idx++] = ch;
+
+                    if (curs_pos < inwidth)
+                        curs_pos++;
+
+                    draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
+                }
+
+                break;
+            case KEY_RESIZE:
+                on_redraw(menu_win, ctx);
+                /* XXX: redraw self */
+                break;
         }
     }
+
+    reset_color_pairs();
 }
 
 /* makes a menu with the corresponding entries */
-int do_menu(struct menu *menu)
+int do_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     if (!menu || !menu->entries)
-        return 1;
+        return -1;
 
     keypad(menu->win, TRUE);
     box(menu->win, 0, 0);
@@ -273,79 +272,81 @@ int do_menu(struct menu *menu)
         doupdate();
 
         switch (ch) {
-        case KEY_UP: ;
-            int prev_ent = get_entry_whence(menu, PREVIOUS);
+            case KEY_UP: ;
+                int prev_ent = get_entry_whence(menu, PREVIOUS);
 
-            if (menu->cur_entry != prev_ent) {
-                menu->cur_entry = prev_ent;
+                if (menu->cur_entry != prev_ent) {
+                    menu->cur_entry = prev_ent;
 
-                wmove(menu->win, 1, 1);
-                int vis_cur_y = draw_menu(menu);
-                wmove(menu->win, vis_cur_y - 1, 1);
-            }
+                    wmove(menu->win, 1, 1);
+                    int vis_cur_y = draw_menu(menu);
+                    wmove(menu->win, vis_cur_y - 1, 1);
+                }
 
-            break;
-        case KEY_DOWN: ;
-            int next_ent = get_entry_whence(menu, NEXT);
+                break;
+            case KEY_DOWN: ;
+                int next_ent = get_entry_whence(menu, NEXT);
 
-            if (menu->cur_entry != next_ent) {
-                menu->cur_entry = next_ent;
-
-                wmove(menu->win, 1, 1);
-                int vis_cur_y = draw_menu(menu);
-                wmove(menu->win, vis_cur_y, 1);
-            }
-
-            break;
-        case KEY_LEFT:
-            if (ent->common.type == ENTRY_ROULETTE) {
-                struct roul_ent *tmp = &ent->roulette;
-
-                if (tmp->cur_option != 0) {
-                    tmp->cur_option--;
+                if (menu->cur_entry != next_ent) {
+                    menu->cur_entry = next_ent;
 
                     wmove(menu->win, 1, 1);
                     int vis_cur_y = draw_menu(menu);
                     wmove(menu->win, vis_cur_y, 1);
                 }
-            }
 
-            break;
-        case KEY_RIGHT:
-            if (ent->common.type == ENTRY_ROULETTE) {
-                struct roul_ent *tmp = &ent->roulette;
+                break;
+            case KEY_LEFT:
+                if (ent->common.type == ENTRY_ROULETTE) {
+                    struct roul_ent *tmp = &ent->roulette;
 
-                if (tmp->alt[tmp->cur_option + 1]) {
-                    tmp->cur_option++;
+                    if (tmp->cur_option != 0) {
+                        tmp->cur_option--;
 
-                    wmove(menu->win, 1, 1);
-                    int vis_cur_y = draw_menu(menu);
-                    wmove(menu->win, vis_cur_y, 1);
+                        wmove(menu->win, 1, 1);
+                        int vis_cur_y = draw_menu(menu);
+                        wmove(menu->win, vis_cur_y, 1);
+                    }
                 }
-            }
 
-            break;
-        case '\n':
-        case ' ': ;
-            switch (ent->common.type) {
-            case ENTRY_SELECTABLE:
-                return menu->cur_entry;
-            case ENTRY_CONDITIONAL:
-                return -1;
-            case ENTRY_INPUT:
-                get_input(&ent->input);
+                break;
+            case KEY_RIGHT:
+                if (ent->common.type == ENTRY_ROULETTE) {
+                    struct roul_ent *tmp = &ent->roulette;
 
-                redrawwin(stdscr);
-                wrefresh(stdscr);
+                    if (tmp->alt[tmp->cur_option + 1]) {
+                        tmp->cur_option++;
 
-                draw_menu(menu);
+                        wmove(menu->win, 1, 1);
+                        int vis_cur_y = draw_menu(menu);
+                        wmove(menu->win, vis_cur_y, 1);
+                    }
+                }
 
-                doupdate();
-            }
+                break;
+            case '\n':
+            case ' ': ;
+                switch (ent->common.type) {
+                    case ENTRY_SELECTABLE:
+                        return menu->cur_entry;
+                    case ENTRY_CONDITIONAL:
+                        return -1;
+                    case ENTRY_INPUT:
+                        get_input(&ent->input, on_redraw, menu->win, ctx);
 
-            break;
-        case KEY_RESIZE:
-            CHECK_TERMSIZE();
+                        redrawwin(stdscr);
+                        wrefresh(stdscr);
+
+                        draw_menu(menu);
+                        on_redraw(menu->win, ctx);
+
+                        doupdate();
+                }
+
+                break;
+            case KEY_RESIZE:
+                on_redraw(menu->win, ctx);
+                // XXX: check termsize
         }
 
         clearok(stdscr, TRUE);

@@ -8,10 +8,10 @@
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-#define ARR_SIZE(x) sizeof((x))/sizeof((x)[0])
+#define ARR_SIZE(x) sizeof((x)) / sizeof((x)[0])
 
-#define CHECK_TERMSIZE() if (LINES < 20 || COLS < 50) \
-    errx(1, "Needs at least a 50x20 to terminal to work.");
+#define MIN_LINES 20
+#define MIN_COLS 50
 
 size_t utf8len(const char *str);
 
