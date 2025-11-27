@@ -247,11 +247,15 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
 
                 break;
             case KEY_BACKSPACE:
+            case '8' & 0x1f:
+            case '?' & 0x1f:
+            case 127:
+            case '\b':
                 if (str_idx > 0 && curs_pos > 0) {
-                    memmove(&input->buf[str_idx - 1], &input->buf[str_idx], len-- - str_idx - 1);
+                    memmove(&input->buf[str_idx - 1], &input->buf[str_idx], len-- - str_idx + 1);
                     input->buf[len] = 0;
 
-                    draw_input(inbox, 1, 3, inwidth, input, str_idx, --curs_pos, len);
+                    draw_input(inbox, 1, 3, inwidth, input, --str_idx, --curs_pos, len);
                 }
             case KEY_RESIZE:
                 on_redraw(menu_win, ctx);
