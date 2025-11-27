@@ -21,10 +21,8 @@ enum main_menu_entry {
     MM_ENTRY_LAST
 };
 
-// Validates a host string. The host string should either be of the form
-// `HOST:PORT` or `HOST`. If a port isn't supplied, the default value is
-// used.
-const char *menu_validate_host(char *buf)
+// NOTE: allocates `host`
+const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
 {
     static const char *invalid_v6 = "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'.";
     static const char *invalid_host = "Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain name or IPv4/6 address.";
@@ -33,7 +31,7 @@ const char *menu_validate_host(char *buf)
     char *v6end = NULL;
     
     // Assume it's an IPv6 address if it has two colons or uses brackets
-    if (colon && strchr(colon, ':')) {
+    if (colon && strchr(colon + 1, ':')) {
         colon = v6end = strchr(buf, '\0');
     } else if (buf[0] == '[') {
         v6end = strchr(buf, ']');
@@ -55,15 +53,53 @@ const char *menu_validate_host(char *buf)
         }
     }
 
+    unsigned long parsed_port = 0;
+
     if (!colon || *colon == '\0')
-        return NULL;
+        goto valid_host;
 
-    unsigned long port = strtoul(colon + 1, NULL, 10);
+    parsed_port = strtoul(colon + 1, NULL, 10);
 
-    if (port > 1024 && port < 65536)
-        return NULL;
+    if (parsed_port <= 1024 || parsed_port >= 65536)
+        goto valid_host;
     else
         return invalid_host;
+
+valid_host:
+    if (parsed_port == 0) {
+        if (port)
+            *port = DEFAULT_PORT;
+    } else {
+        if (port)
+            *port = parsed_port;
+    }
+
+    if (v6end) {
+        char *v6start = &buf[0];
+        
+        if (*v6end == ']')
+            v6start++;
+
+        if (host) {
+            *host = malloc(v6end - v6start);
+            memcpy(*host, v6start, v6end - v6start);
+        }
+    } else {
+        if (host) {
+            *host = malloc(colon - buf);
+            memcpy(*host, buf, colon - buf);
+        }
+    }
+
+    return NULL;
+}
+
+// Validates a host string. The host string should either be of the form
+// `HOST:PORT` or `HOST`. If a port isn't supplied, the default value is
+// used.
+const char *menu_validate_host(char *buf)
+{
+    return validate_split_host_port(buf, NULL, NULL);
 }
 
 bool menu_condition_netplay(struct menu *menu)
