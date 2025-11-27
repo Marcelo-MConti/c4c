@@ -50,7 +50,9 @@ static bool draw_entry(struct menu *menu, int index)
             waddstr(menu->win, "> ");
             break;
         case ENTRY_INPUT:
-            wprintw(menu->win, " %s: ", ent->input.text);
+            wmove(menu->win, cury, 3);
+            fill(menu->win, 3, winx - 2, ' ');
+            mvwprintw(menu->win, cury, 3, " %s: ", ent->input.text);
 
             if (!ent->input.buf[0]) {
                 mvwaddch(menu->win, cury, winx - 3, '_');
@@ -122,11 +124,11 @@ static void draw_input(WINDOW *win, int x, int y, int width,
         struct in_ent *input, int str_idx, int curs_pos, int len)
 {
     wmove(win, y, x);
-    fill(win, x, width, '#' | A_BOLD);
+    fill(win, x, width, ' ' | A_REVERSE | A_DIM);
 
     for (int i = str_idx - curs_pos;
             i - (str_idx - curs_pos) < width && i < len; i++)
-        waddch(win, input->buf[i]);
+        waddch(win, input->buf[i] | A_REVERSE | A_DIM);
 
     wmove(win, y, x + (curs_pos >= width ? width - 1 : curs_pos));
 }
@@ -162,7 +164,7 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
         getyx(inbox, (int){0}, curx);
 
         if (redraw) {
-            wrefresh(stdscr);
+            refresh();
             redraw = false;            
         }
         
@@ -208,10 +210,8 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
                     const char *err = input->validate(input->buf);
 
                     if (err) {
-                        // fill(inbox, 1, inwidth, ' ');
                         wattrset(stdscr, COLOR_PAIR(1));
                         mvwaddstr(stdscr, LINES - 2, (COLS - strlen(err)) / 2, err);
-                        // mvwaddstr(inbox, 1, 1, err);
                         wattrset(stdscr, COLOR_PAIR(0));
 
                         redraw = true;
@@ -248,7 +248,21 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
                 break;
             case KEY_RESIZE:
                 on_redraw(menu_win, ctx);
-                /* XXX: redraw self */
+
+                offx = (COLS - winx) / 2;
+                offy = (LINES - winy) / 2;
+                
+                mvwin(inbox, offy, offx);
+                draw_input(inbox, 1, 3, inwidth, input, str_idx, curs_pos, len);
+
+                touchwin(inbox);
+                wsyncup(inbox);
+
+                wnoutrefresh(stdscr);
+                wnoutrefresh(inbox);
+
+                doupdate();
+
                 break;
         }
     }

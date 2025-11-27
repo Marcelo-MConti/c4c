@@ -1,8 +1,6 @@
 #include <curses.h>
 #include <stdlib.h>
-#include <string.h>
 
-#include "util.h"
 #include "game.h"
 #include "chars.h"
 
@@ -73,7 +71,7 @@ static bool check_win(struct game *game, struct position *pos)
     return false;
 }
 
-struct position *local_make_move(WINDOW *win, struct game *game)
+struct position *local_make_move(WINDOW *win, struct game *game, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     static struct position pos = {0};
     int idx = pos.x, ch, tmp;
@@ -133,15 +131,15 @@ struct position *local_make_move(WINDOW *win, struct game *game)
 
                 break;
             case KEY_RESIZE:
-                // XXX: check terminal size
-
+                on_redraw(win, ctx);
+                doupdate();
                 break;
             case '1' ... '7':
                 idx = ch - '1';
 
                 wmove(win, 0, 1);
                 print_arrow(win, idx);
-            }
+        }
     }
 }
 
@@ -181,10 +179,12 @@ static void print_board(WINDOW *win, struct game *game)
     }
 }
 
-void start_game(int width, int height, enum play_mode mode)
+void start_game(int width, int height, enum play_mode modei, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     redrawwin(stdscr);
     wrefresh(stdscr);
+
+    // XXX: check tie
 
     struct game game = {
         .width = width, .height = height,
@@ -218,8 +218,9 @@ void start_game(int width, int height, enum play_mode mode)
 
     enum tile (*board)[game.width] = game.board;
     int curplayer = 0;
-    while (1) {
-        struct position *mv = local_make_move(game_win, &game);
+
+    while (true) {
+        struct position *mv = local_make_move(game_win, &game, on_redraw, ctx);
 
         board[mv->y][mv->x] = (curplayer == 0) ?
             RED_CHECKER : YLW_CHECKER;

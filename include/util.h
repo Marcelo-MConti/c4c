@@ -10,8 +10,11 @@
 
 #define ARR_SIZE(x) sizeof((x)) / sizeof((x)[0])
 
-#define MIN_LINES 20
-#define MIN_COLS 50
+#define _STR(x) #x
+#define STR(x) _STR(x)
+
+#define MIN_LINES 30
+#define MIN_COLS 80
 
 size_t utf8len(const char *str);
 

@@ -31,6 +31,6 @@ struct position {
     int x, y;
 };
 
-void start_game(int width, int height, enum play_mode);
+void start_game(int width, int height, enum play_mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
 
 #endif /* _GAME_H_ */
