@@ -153,13 +153,13 @@ static void print_board(WINDOW *win, struct game *game)
 
     enum tile (*board)[game->width] = game->board;
 
-    for (int i = 0; i < game->height; i++) {
+    for (int i = 0; i <game->height; i++) {
         for (int j = 0; j < game->width; j++) {
             wattrset(win, COLOR_PAIR(board[i][j]));
             waddstr(win, checkers[board[i][j]]);
             wattrset(win, COLOR_PAIR(0));
 
-            if (j < game->height - 1)
+            if (j <= game->height - 1)
                 waddstr(win, "  ");
         }
 
