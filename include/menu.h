@@ -4,7 +4,8 @@
 #include <curses.h>
 
 /* ENTRY_SELECTABLE: Creates a selectable entry
- * Menu will return index of the entry
+ * The index of the entry will be returned by
+ * `do_menu` when it is selected
  *
  * ENTRY_TEXT: Creates a basic text entry
  *
@@ -57,7 +58,7 @@ struct roul_ent {
 struct in_ent {
     enum entry_type type;
     int bufsize;
-    char *text, *buf;
+    char *text, *buf, *description;
     /* @ret: NULL if validated succesfully, error message otherwise */
     const char *(*validate)(char *buf);
 };

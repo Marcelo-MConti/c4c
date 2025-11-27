@@ -48,7 +48,7 @@ static bool check_win(struct game *game, struct position *pos)
     if (board[pos->y][pos->x] == NONE)
         return false;
 
-    char same_neighbours[4] = {0};
+    uint8_t same_neighbours[4] = {0};
 
     for (int i = 0; i < 8; i++) {
         struct position chk_pos = { pos->x, pos->y };

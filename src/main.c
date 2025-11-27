@@ -86,7 +86,7 @@ static union entry_un *main_menu_entries[] = (union entry_un *[]) {
     [MM_ENTRY_NETPLAY_HOST] = &(union entry_un) { .conditional = {
         ENTRY_CONDITIONAL,
         &(union entry_un) { .input = {
-            ENTRY_INPUT, 255, "HOST", (char [256]) {0}, menu_validate_host
+            ENTRY_INPUT, 255, "HOST", (char [256]) {0}, "Hostname or address of peer:", menu_validate_host
         }},
         menu_condition_netplay
     }},
@@ -109,9 +109,15 @@ void on_redraw_menu(WINDOW *menu_win, void *ctx) {
     int y_offset = (LINES - redraw->main_win_height) / 2;
     int x_offset = (COLS - redraw->main_win_width) / 2;
 
-    mvwin(redraw->main_win, y_offset, x_offset);
+    mvwin(redraw->logo_win, y_offset, x_offset);
+    mvwin(menu_win, y_offset + ARR_SIZE(logo) + 1, x_offset);
 
-    wnoutrefresh(redraw->main_win);
+    werase(stdscr);
+
+    wnoutrefresh(menu_win);
+    wnoutrefresh(redraw->logo_win);
+    
+    wnoutrefresh(stdscr);
 }
 
 int main()
@@ -140,20 +146,19 @@ int main()
             max_logo_width = len;
     }
 
-    int main_win_height = ARR_SIZE(logo) + ARR_SIZE(main_menu_entries) - 1 + 6;
-    int main_win_width = MAX(max_logo_width, 30);
+    int win_height = ARR_SIZE(logo) + ARR_SIZE(main_menu_entries) - 1 + 6;
+    int win_width = MAX(max_logo_width, 30);
     
-    WINDOW *main_win = newwin(main_win_height, main_win_width, 30, 30);
-    WINDOW *logo_win = derwin(main_win, ARR_SIZE(logo), main_win_width, 0, 0);
+    WINDOW *logo_win = newwin(ARR_SIZE(logo), win_width, (LINES - win_height) / 2, (COLS - win_width) / 2);
 
-    int logo_width = (main_win_width - max_logo_width) / 2;
+    int logo_width = (win_width - max_logo_width) / 2;
     
     for (int i = 0; i < ARR_SIZE(logo); i++) {
         wmove(logo_win, i, logo_width);
         waddstr(logo_win, logo[i]);
     }
 
-    WINDOW *menu_win = derwin(main_win, 7, main_win_width, ARR_SIZE(logo) + 1, 0);
+    WINDOW *menu_win = newwin(7, win_width, (LINES - win_height) / 2 + ARR_SIZE(logo) + 1, (COLS - win_width / 2));
     
     struct menu main_menu = {
         .entries = &main_menu_entries,
@@ -162,12 +167,12 @@ int main()
     
     struct redraw_menu_ctx redraw_ctx = {
         .logo_win = logo_win,
-        .main_win = main_win,
         .max_logo_width = max_logo_width,        
-        .main_win_height = main_win_height,
-        .main_win_width = main_win_width,
+        .main_win_height = win_height,
+        .main_win_width = win_width,
     };
 
+    // XXX: figure out why logo window isn't being displayed
     while (true) {
         on_redraw_menu(menu_win, &redraw_ctx);
         doupdate();
@@ -177,6 +182,12 @@ int main()
         switch (entry) {
             case MM_ENTRY_START: ;
                 enum play_mode mode = (*main_menu.entries)[MM_ENTRY_PLAYMODE]->roulette.cur_option;
+                char *host = (*main_menu.entries)[MM_ENTRY_NETPLAY_HOST]->input.buf;
+
+                if (mode == PLAY_NET && *host == '\0') {
+                    /* XXX: show error message */
+                }
+                
                 start_game(7, 6, mode);
 
                 break;
@@ -190,7 +201,7 @@ int main()
                 return 0;
        }
 
-       redrawwin(main_win);
-       wrefresh(main_win);
+       // redrawwin(main_win);
+       // wrefresh(main_win);
     }
 }
