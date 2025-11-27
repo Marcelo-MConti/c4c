@@ -1,6 +1,6 @@
 BUILD ?= build
 
-SOURCES := $(wildcard src/*.c)
+SOURCES := $(wildcard src/*.c src/game/*.c)
 OBJECTS := $(SOURCES:src/%.c=$(BUILD)/%.o)
 
 PREFIX ?= /usr/local
@@ -21,13 +21,13 @@ ifeq ($(origin NOCOLOR), undefined)
 	CPPFLAGS += -DC4C_COLOR
 endif
 
-ALLCFLAGS := -Wall -O2 -std=gnu23 $(CFLAGS)
+ALLCFLAGS := -Wall -O2 -std=gnu11 $(CFLAGS)
 ALLCPPFLAGS := -Iinclude -MMD $(CPPFLAGS)
 
 LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo -lm
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 
-all: $(BUILD)/ c4c
+all: $(dir $(OBJECTS)) c4c
 
 %/:
 	mkdir $@
