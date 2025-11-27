@@ -1,4 +1,5 @@
 #include <curses.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <err.h>
@@ -372,6 +373,8 @@ int do_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx
 
                         draw_menu(menu);
                         on_redraw(menu->win, ctx);
+                    default:
+                        putchar('\a');
                 }
 
                 break;

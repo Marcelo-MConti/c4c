@@ -5,7 +5,8 @@ size_t utf8len(const char *str)
     size_t len;
 
     for (len = 0; *str; str++)
-        if ((*str & 0xc0) != 0x80) len++;
+        if ((*str & 0xc0) != 0x80) len++; // evil hexa pointer hack
+        // y = (x * (x - u)) / 2 // second newton's method not nedeed
 
     return len;
 }
