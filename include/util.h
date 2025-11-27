@@ -21,4 +21,6 @@ size_t utf8len(const char *str);
 void fill(WINDOW *win, int from, int to, int ch);
 void print_truncate(WINDOW *win, char *str, int len, int trunc);
 
+uint32_t randinho(void);
+
 #endif /* _UTIL_H_ */

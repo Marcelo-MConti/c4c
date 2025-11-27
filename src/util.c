@@ -1,4 +1,6 @@
 #include "util.h"
+#include <stdlib.h>
+#include <time.h>
 
 size_t utf8len(const char *str)
 {
@@ -35,4 +37,9 @@ void print_truncate(WINDOW *win, char *str, int len, int trunc)
     } else {
         waddnstr(win, str, len);
     }
+}
+
+uint32_t randinho() {
+  srand(time(NULL));
+  return (rand() << 16) + rand();
 }
