@@ -6,6 +6,9 @@
 
 #include "chars.h"
 
+#define ERROR_COLOR RED_CHECKER
+#define WARN_COLOR  YLW_CHECKER
+
 const static struct position neighbour_pos[] = {
     { 0,  1 }, {  1,  1 }, {  1,  0 }, {  1, -1 },
     { 0, -1 }, { -1, -1 }, { -1,  0 }, { -1,  1 }

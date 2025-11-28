@@ -1,6 +1,6 @@
 BUILD ?= build
 
-SOURCES := $(wildcard src/*.c src/game/*.c)
+SOURCES := $(wildcard src/*.c src/game/*.c src/ui/*.c)
 OBJECTS := $(SOURCES:src/%.c=$(BUILD)/%.o)
 
 PREFIX ?= /usr/local

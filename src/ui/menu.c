@@ -28,8 +28,6 @@ static bool draw_entry(struct menu *menu, int index)
             return false;
     }
 
-    // mvwaddch(menu->win, cury, 2,
-            // index == menu->cur_entry ? '*' | A_BOLD : ' ');
     if (index == menu->cur_entry)
         wattrset(menu->win, A_REVERSE);
 
@@ -212,6 +210,7 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
 
                 break;
             case '\n':
+            case KEY_ENTER:
                 if (input->validate && input->buf[0]) {
                     const char *err = input->validate(input->buf);
 
@@ -367,7 +366,8 @@ int run_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ct
 
                 break;
             case '\n':
-            case ' ': ;
+            case KEY_ENTER:
+            case ' ':
                 switch (ent->common.type) {
                     case ENTRY_SELECTABLE:
                         return menu->cur_entry;

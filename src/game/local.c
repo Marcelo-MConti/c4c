@@ -48,6 +48,7 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
 
                 break;
             case '\n':
+            case KEY_ENTER:
             case ' ':
                 if ((tmp = col_is_not_full(game, idx)) != -1) {
                     pos.x = idx;

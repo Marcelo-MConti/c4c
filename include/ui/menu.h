@@ -1,5 +1,5 @@
-#ifndef _MENU_H_
-#define _MENU_H_
+#ifndef _UI_MENU_H_
+#define _UI_MENU_H_
 
 #include <curses.h>
 
@@ -83,4 +83,4 @@ union entry_un {
  */
 int run_menu(struct menu *menu, void (*redraw)(WINDOW *menu_win, void *ctx), void *ctx);
 
-#endif /* _MENU_H_ */
+#endif /* _UI_MENU_H_ */

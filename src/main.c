@@ -186,7 +186,9 @@ void on_redraw_game(WINDOW *game_win, void *ctx)
 
     mvwin(game_win, y_offset, x_offset);
 
+    werase(stdscr);
     wnoutrefresh(stdscr);
+
     wnoutrefresh(game_win);
 }
 
