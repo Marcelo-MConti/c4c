@@ -1,3 +1,4 @@
+#include <string.h>
 #include <curses.h>
 
 #include "ui/yn_prompt.h"
