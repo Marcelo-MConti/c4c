@@ -7,7 +7,7 @@
 #include "util.h"
 #include "logo.h"
 #include "game.h"
-#include "menu.h"
+#include "ui/menu.h"
 
 #if !defined(C4C_ASCII) && !defined(C4C_COLOR)
 #error "Enable either ASCII mode or color support (the game is unplayable otherwise)"
@@ -117,7 +117,12 @@ static union entry_un *main_menu_entries[] = (union entry_un *[]) {
     }},
     [MM_ENTRY_PLAYMODE] = &(union entry_un) { .roulette = {
         ENTRY_ROULETTE, 0, "PLAY MODE",
-        (char *[]) { "PL vs. PL", "PL vs. PC", "PC vs. PC", "NETPLAY", NULL }
+        (char *[]) {
+            [PLAY_LOCAL] = "PL vs. PL",
+            [PLAY_LOCAL_PC] = "PL vs. PC",
+            [PLAY_NET] = "NETPLAY",
+            [PLAY_LAST] = NULL
+        }
     }},
     [MM_ENTRY_NETPLAY_HOST] = &(union entry_un) { .conditional = {
         ENTRY_CONDITIONAL,
@@ -245,7 +250,7 @@ int main()
         on_redraw_menu(menu_win, &redraw_ctx);
         doupdate();
         
-        int entry = do_menu(&main_menu, on_redraw_menu, &redraw_ctx);
+        int entry = run_menu(&main_menu, on_redraw_menu, &redraw_ctx);
 
         switch (entry) {
             case MM_ENTRY_START: {
@@ -267,7 +272,7 @@ int main()
                     continue;
                 }
                 
-                start_game(7, 6, mode, on_redraw_game, NULL);
+                start_game(DEFAULT_WIDTH, DEFAULT_HEIGHT, mode, on_redraw_game, NULL);
 
                 break;
             }

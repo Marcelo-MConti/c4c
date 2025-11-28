@@ -5,7 +5,7 @@
 #include <err.h>
 
 #include "util.h"
-#include "menu.h"
+#include "ui/menu.h"
 
 enum {
     PREVIOUS,
@@ -28,8 +28,13 @@ static bool draw_entry(struct menu *menu, int index)
             return false;
     }
 
-    mvwaddch(menu->win, cury, 2,
-            index == menu->cur_entry ? '*' | A_BOLD : ' ');
+    // mvwaddch(menu->win, cury, 2,
+            // index == menu->cur_entry ? '*' | A_BOLD : ' ');
+    if (index == menu->cur_entry)
+        wattrset(menu->win, A_REVERSE);
+
+    fill(menu->win, curx, winx - 2, ' ');
+    wmove(menu->win, cury, curx);
 
     switch (ent->common.type) {
         case ENTRY_TEXT:
@@ -51,9 +56,7 @@ static bool draw_entry(struct menu *menu, int index)
             waddstr(menu->win, "> ");
             break;
         case ENTRY_INPUT:
-            wmove(menu->win, cury, 3);
-            fill(menu->win, 3, winx - 2, ' ');
-            mvwprintw(menu->win, cury, 3, " %s: ", ent->input.text);
+            mvwprintw(menu->win, cury, 1, " %s: ", ent->input.text);
 
             if (!ent->input.buf[0]) {
                 mvwaddch(menu->win, cury, winx - 3, '_');
@@ -68,6 +71,8 @@ static bool draw_entry(struct menu *menu, int index)
         case ENTRY_CONDITIONAL:
             return -1;
     }
+
+    wattrset(menu->win, 0);
 
     return true;
 }
@@ -283,7 +288,7 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
 }
 
 /* makes a menu with the corresponding entries */
-int do_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
+int run_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     if (!menu || !menu->entries)
         return -1;

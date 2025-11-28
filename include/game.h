@@ -6,11 +6,14 @@
 
 #define DEFAULT_PORT 36540
 
+#define DEFAULT_WIDTH 7
+#define DEFAULT_HEIGHT 6
+
 enum play_mode {
-    PLAY_PLPL,
-    PLAY_PLPC,
-    PLAY_PCPC,
-    PLAY_NET
+    PLAY_LOCAL,
+    PLAY_LOCAL_PC,
+    PLAY_NET,
+    PLAY_LAST
 };
 
 enum tile {

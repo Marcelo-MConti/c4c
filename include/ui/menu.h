@@ -5,7 +5,7 @@
 
 /* ENTRY_SELECTABLE: Creates a selectable entry
  * The index of the entry will be returned by
- * `do_menu` when it is selected
+ * `run_menu` when it is selected
  *
  * ENTRY_TEXT: Creates a basic text entry
  *
@@ -81,6 +81,6 @@ union entry_un {
 /* Shows a menu on the specified window
  * Returns when an option is selected
  */
-int do_menu(struct menu *menu, void (*redraw)(WINDOW *menu_win, void *ctx), void *ctx);
+int run_menu(struct menu *menu, void (*redraw)(WINDOW *menu_win, void *ctx), void *ctx);
 
 #endif /* _MENU_H_ */
