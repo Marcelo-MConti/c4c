@@ -38,12 +38,14 @@ msgstr "Endereço IPv6 inválido! Use `[ENDEREÇO]:[PORTA]' ou apenas `ENDEREÇO
 msgid ""
 "Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain "
 "name or IPv4/6 address."
-msgstr "Host inválido! Esperado `HOST:PORTA' ou só `HOST' (um nome de domínio"
-" ou endereço IPv4/6)."
+msgstr ""
+"Host inválido! Esperado `HOST:PORTA' ou só `HOST' (um nome de domínio ou "
+"endereço IPv4/6)."
 
 #, c-format
 msgid "c4c needs at least a %dx%d terminal to work."
-msgstr "c4c precisa de um terminal com dimensões de pelo menos %dx%d para funcionar."
+msgstr ""
+"c4c precisa de um terminal com dimensões de pelo menos %dx%d para funcionar."
 
 msgid ""
 "This terminal does not support colors, which is required for c4c to run.\n"
@@ -100,3 +102,6 @@ msgstr "Cancelar"
 
 msgid "OK"
 msgstr "OK"
+
+msgid "Tie!"
+msgstr "Empate!"

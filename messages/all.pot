@@ -94,3 +94,6 @@ msgstr ""
 
 msgid "OK"
 msgstr ""
+
+msgid "Tie!"
+msgstr ""

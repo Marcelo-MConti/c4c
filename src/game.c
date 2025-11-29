@@ -188,13 +188,20 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
     int n_turns = 0;
     enum tile (*board)[game.width] = game.board;
 
+    // TODO: center messages?
     while (true) {
-        if (n_turns == width * height) {
-            // TODO: handle tie
-        }
-        
         print_hud(&game);
         refresh();
+
+        if (n_turns == width * height) {
+            print_board(game_win, &game);
+            wrefresh(game_win);
+
+            mvwaddstr(stdscr, LINES - 3, 1, _("Tie!"));
+            wgetch(stdscr);
+
+            break;
+        }
 
         struct position *pos = local_play(game_win, &game, on_redraw, ctx);
 
@@ -213,13 +220,11 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
             }
 
             print_board(game_win, &game);
-
             wrefresh(game_win);
 
             y_offset = (LINES - 3) / 2 - 10;
             x_offset = (COLS - 20) / 2;
 
-            // TODO: center this message
             mvwaddstr(stdscr, LINES - 3, 1, _(end_messages[mode][game.cur_player]));
             wgetch(stdscr);
 
