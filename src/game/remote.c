@@ -77,12 +77,12 @@ bool remote_init_play(char *host, uint16_t port)
         switch (cur->ai_family) {
             case AF_INET: ;
                 struct sockaddr_in *sin = (struct sockaddr_in *)cur->ai_addr;
-                sin->sin_port = port;
+                sin->sin_port = htons(port);
 
                 break;
             case AF_INET6: ;
                 struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)cur->ai_addr;
-                sin6->sin6_port = port;
+                sin6->sin6_port = htons(port);
 
                 break;
             default:
@@ -103,7 +103,7 @@ bool remote_init_play(char *host, uint16_t port)
         goto fail_addrinfo;
 
     struct net_thread_args *args = malloc(sizeof *args);
-    args->sock_fd = 0;
+    args->sock_fd = sock_fd;
     
     if (pthread_create(&net_thread, NULL, event_loop, args) != 0)
         goto fail_thread_args;
