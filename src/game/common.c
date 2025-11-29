@@ -31,7 +31,7 @@ void print_arrow(WINDOW *win, int ind)
 
 void print_hud(struct game *game)
 {
-    const char *hud_msg = _("(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile");
+    const char *hud_msg = _("(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play");
 
     wmove(stdscr, LINES - 1, 1);
 

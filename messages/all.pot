@@ -97,3 +97,6 @@ msgstr ""
 
 msgid "Tie!"
 msgstr ""
+
+msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play"
+msgstr ""

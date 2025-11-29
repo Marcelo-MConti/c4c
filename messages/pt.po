@@ -85,9 +85,6 @@ msgid ""
 msgstr ""
 "Você deve especificar um endereço de uma máquina para jogar no modo online."
 
-msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile"
-msgstr "(^C) Sair     (<-/->/Home/End) Mover seta     (Enter) Jogar a peça"
-
 msgid "Do you really want to quit?"
 msgstr "Você realmente deseja sair?"
 
@@ -105,3 +102,6 @@ msgstr "OK"
 
 msgid "Tie!"
 msgstr "Empate!"
+
+msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play"
+msgstr "(^C) Sair     (<-/->/Home/End) Mover seta     (Enter) Fazer jogada"
