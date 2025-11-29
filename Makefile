@@ -27,7 +27,7 @@ endif
 ALLCFLAGS += $(CFLAGS)
 ALLCPPFLAGS += $(CPPFLAGS)
 
-LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo -lm $(LDLIBS)
+LIBS := $(shell pkg-config --libs $(NCURSES)) -ltinfo -lm -lpthread $(LDLIBS)
 PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 
 LANGS := pt
