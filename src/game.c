@@ -6,13 +6,35 @@
 
 #include "chars.h"
 
+
 #define ERROR_COLOR RED_CHECKER
 #define WARN_COLOR  YLW_CHECKER
 
-const static struct position neighbour_pos[] = {
+#define PLAYER_TO_CHECKER(p) ((p) + 1)
+
+
+enum player {
+    PLAYER_RED,
+    PLAYER_YLW
+};
+
+
+/**
+ * Esse array é ordenado de forma que as posições `i` e `i + 4`
+ * sejam inversas uma da outra. Isso simplifica a lógica da função
+ * `check_win`.
+ */
+static const struct position neighbour_pos[] = {
     { 0,  1 }, {  1,  1 }, {  1,  0 }, {  1, -1 },
     { 0, -1 }, { -1, -1 }, { -1,  0 }, { -1,  1 }
 };
+
+static const char *end_messages[][2] = {
+    [PLAY_LOCAL] = { "Red won!", "Yellow won!" },
+    [PLAY_LOCAL_PC] = { "You won.", "The computer won." },
+    [PLAY_NET] = { "You won.", "You lost." }
+};
+
 
 static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos)
 {
@@ -23,7 +45,7 @@ static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos
     return board[pos->y][pos->x] != NONE;
 }
 
-static bool check_win(struct game *game, struct position *pos)
+static int check_win(struct game *game, struct position *pos)
 {
     enum tile (*board)[game->width] = game->board;
 
@@ -49,10 +71,10 @@ static bool check_win(struct game *game, struct position *pos)
 
     for (int i = 0; i < 4; i++) {
         if (same_neighbours[i] >= 3)
-            return true;
+            return i;
     }
 
-    return false;
+    return -1;
 }
 
 static void print_board(WINDOW *win, struct game *game)
@@ -64,12 +86,13 @@ static void print_board(WINDOW *win, struct game *game)
     wmove(win, winy - 2, 1);
 
     enum tile (*board)[game->width] = game->board;
+    uint8_t (*blink)[game->width] = game->blink;
 
     for (int i = 0; i <game->height; i++) {
         for (int j = 0; j < game->width; j++) {
-            wattrset(win, COLOR_PAIR(board[i][j]));
+            wattrset(win, COLOR_PAIR(board[i][j]) | A_BLINK * blink[i][j]);
             waddstr(win, checkers[board[i][j]]);
-            wattrset(win, COLOR_PAIR(0));
+            wattrset(win, COLOR_PAIR(0) | A_NORMAL);
 
             if (j <= game->height - 1)
                 waddstr(win, "  ");
@@ -81,7 +104,11 @@ static void print_board(WINDOW *win, struct game *game)
             wmove(win, cury - 1, 3);
 
             for (int j = 0; j < game->width - 1; j++) {
+#ifdef C4C_COLOR
+                waddch(win, '+');
+#else
                 waddch(win, '.');
+#endif
                 getyx(win, cury, curx);
                 wmove(win, cury, curx + 2);
             }
@@ -91,6 +118,36 @@ static void print_board(WINDOW *win, struct game *game)
     }
 }
 
+void mark_winning_tiles(WINDOW *win, struct game *game, struct position *pos, int winning_axis)
+{
+    enum tile (*board)[game->width] = game->board;
+    uint8_t (*blink)[game->width] = game->blink;
+
+    wattrset(win, COLOR_PAIR(board[pos->y][pos->x] | A_BLINK));
+
+    struct position chk_a = { pos->x, pos->y };
+
+    while (is_valid_nonempty_pos(game, &chk_a) &&
+            board[pos->y][pos->x] == board[chk_a.y][chk_a.x]) {
+        blink[chk_a.y][chk_a.x] = 1;
+
+        chk_a.x += neighbour_pos[winning_axis].x;
+        chk_a.y += neighbour_pos[winning_axis].y;
+    }
+
+    struct position chk_b = { pos->x, pos->y };
+
+    while (is_valid_nonempty_pos(game, &chk_b) &&
+            board[pos->y][pos->x] == board[chk_b.y][chk_b.x]) {
+        blink[chk_b.y][chk_b.x] = 1;
+
+        chk_b.x -= neighbour_pos[winning_axis].x;
+        chk_b.y -= neighbour_pos[winning_axis].y;
+    }
+    
+    wattrset(win, COLOR_PAIR(0));
+}
+
 void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     redrawwin(stdscr);
@@ -98,6 +155,7 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     struct game game = {
         .width = width, .height = height,
+        .blink = calloc(1, sizeof(uint8_t[height][width])),
         .board = calloc(1, sizeof(enum tile[height][width]))
     };
 
@@ -120,36 +178,33 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     print_board(game_win, &game);
 
+    int cur_player = 0;
     enum tile (*board)[game.width] = game.board;
-    int curplayer = 0;
 
     while (true) {
-        struct position *mv = local_play(game_win, &game, on_redraw, ctx);
+        struct position *pos = local_play(game_win, &game, on_redraw, ctx);
 
-        board[mv->y][mv->x] = (curplayer == 0) ?
-            RED_CHECKER : YLW_CHECKER;
-
+        board[pos->y][pos->x] = PLAYER_TO_CHECKER(cur_player);
         print_board(game_win, &game);
 
-        if (check_win(&game, mv)) {
+        int winning_axis = check_win(&game, pos);
+
+        if (winning_axis != -1) {
+            mark_winning_tiles(game_win, &game, pos, winning_axis);
+            print_board(game_win, &game);
+
             wrefresh(game_win);
 
             y_offset = (LINES - 3) / 2 - 10;
             x_offset = (COLS - 20) / 2;
 
-            WINDOW *msg_win = newwin(3, 20, y_offset, x_offset);
-
-            box(msg_win, 0, 0);
-
-            mvwprintw(msg_win, 1, 4, "Player %d won.", curplayer + 1);
-            wgetch(msg_win);
-
-            delwin(msg_win);
+            mvwaddstr(stdscr, LINES - 3, 1, end_messages[mode][cur_player]);
+            wgetch(stdscr);
 
             break;
         }
 
-        curplayer = !curplayer;
+        cur_player = !cur_player;
     }
 
     delwin(game_win);
