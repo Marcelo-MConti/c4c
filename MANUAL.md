@@ -18,8 +18,9 @@ As seguintes dependências são necessárias para compilar o jogo:
 
 Para compilar o jogo, basta rodar `make` ou `make all`. As variáveis
 `CFLAGS`, `CPPFLAGS`, `LDLIBS`, `BUILD`, `PREFIX` e `DESTDIR` são
-suportadas, e têm o significado usual. Após compilar, o jogo pode ser
-rodado diretamente:
+suportadas (embora não seja necessário especificá-las, geralmente),
+e têm o significado usual. Após compilar, o jogo pode ser rodado
+diretamente:
 
 ```
 $ ./c4c
