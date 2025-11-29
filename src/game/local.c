@@ -3,9 +3,7 @@
 
 #include <libintl.h>
 
-#include "game.h"
 #include "game/common.h"
-
 #include "ui/yn_prompt.h"
 
 #define _(x) gettext(x)
@@ -20,9 +18,7 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
     print_arrow(win, idx);
 
     while (true) {
-        ch = wgetch(win);
-
-        if (player_wants_to_quit) {
+       if (player_wants_to_quit) {
             player_wants_to_quit = show_yn_prompt(_("Do you really want to quit?"), YN_LABEL_YES_NO, on_redraw, ctx);
 
             if (player_wants_to_quit) {
@@ -39,6 +35,8 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
             print_hud(game);
             doupdate();
         }
+
+        ch = wgetch(win);
         
         switch (ch) {
             case KEY_LEFT:
@@ -101,6 +99,8 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
 
                 wmove(win, 0, 1);
                 print_arrow(win, idx);
+
+                break;
         }
     }
 }

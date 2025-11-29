@@ -1,11 +1,9 @@
-#include <string.h>
 #include <curses.h>
 
 #include <libintl.h>
 
-#include "chars.h"
-#include "game.h"
 #include "util.h"
+#include "chars.h"
 #include "game/common.h"
 
 #define _(x) gettext(x)

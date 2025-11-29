@@ -11,6 +11,12 @@
 
 #include "game/remote.h"
 
+enum net_msg_type {
+    HANDSHAKE,
+    MOVE,
+    ACK
+};
+
 struct net_msg {
     uint32_t seq_id;
     uint32_t type;

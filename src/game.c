@@ -148,7 +148,8 @@ static void set_player_wants_to_quit(int signo)
 
 void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
-    signal(SIGINT, set_player_wants_to_quit);
+    static struct sigaction old_act;
+    sigaction(SIGINT, &(struct sigaction) { .sa_handler = set_player_wants_to_quit }, &old_act);
 
     redrawwin(stdscr);
     wrefresh(stdscr);
@@ -234,6 +235,6 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
     free(game.board);
     free(game.blink);
     
-    signal(SIGINT, SIG_DFL);
+    sigaction(SIGINT, &old_act, NULL);
     player_wants_to_quit = false;
 }

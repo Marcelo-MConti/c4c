@@ -3,13 +3,28 @@
 
 #include <curses.h>
 
-#include "game.h"
-
 #define PLAYER_TO_CHECKER(p) ((p) + 1)
 
 enum player {
     PLAYER_RED,
     PLAYER_YLW
+};
+
+enum tile {
+    TILE_NONE = 0,
+    TILE_RED_CHECKER,
+    TILE_YLW_CHECKER
+};
+
+struct game {
+    enum tile (*board)[];
+    uint8_t (*blink)[];
+    uint8_t cur_player;
+    int width, height;
+};
+
+struct position {
+    int x, y;
 };
 
 extern volatile bool player_wants_to_quit;

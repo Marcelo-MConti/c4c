@@ -1,7 +1,7 @@
 #ifndef _CHARS_H_
 #define _CHARS_H_
 
-#include "game.h"
+#include "game/common.h"
 
 #ifdef C4C_ASCII
 const static char *arrow = "\\/";
