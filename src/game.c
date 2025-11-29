@@ -229,4 +229,5 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
     free(game.blink);
     
     signal(SIGINT, SIG_DFL);
+    player_wants_to_quit = false;
 }
