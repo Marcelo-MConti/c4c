@@ -3,3 +3,4 @@ build
 log.[0-9][0-9]*
 .cache
 compile_commands.json
+*~
