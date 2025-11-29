@@ -12,6 +12,7 @@ enum {
     NEXT
 };
 
+/** Desenha uma entrada do menu (cada entrada ocupa uma linha) */
 static bool draw_entry(struct menu *menu, int index)
 {
     int winx;
@@ -37,7 +38,7 @@ static bool draw_entry(struct menu *menu, int index)
     switch (ent->common.type) {
         case ENTRY_TEXT:
         case ENTRY_SELECTABLE: ;
-            /* -2 for the borders */
+            /* -2: bordas */
             int newx = winx - strlen(ent->text.text) - 2;
             mvwaddstr(menu->win, cury, newx, ent->text.text);
 
@@ -48,7 +49,7 @@ static bool draw_entry(struct menu *menu, int index)
 
             int len = strlen(ent->roulette.alt[ent->roulette.cur_option]);
 
-            /* -1 for border, -2 for the "> " at the end */
+            /* -1: borda, -2: "> " no final */
             mvwaddstr(menu->win, cury, winx - 1 - 2 - len,
                     ent->roulette.alt[ent->roulette.cur_option]);
             waddstr(menu->win, "> ");
@@ -75,12 +76,14 @@ static bool draw_entry(struct menu *menu, int index)
     return true;
 }
 
-/* @ret: visual index of selected entry */
+/** Retorna o índice da entrada selecionada */ 
 static int draw_menu(struct menu *menu)
 {
     wclrtobot(menu->win);
 
-    box(menu->win, 0, 0);
+    if (menu->box)
+        box(menu->win, 0, 0);
+
     wmove(menu->win, 1, 1);
 
     int cury, curx, tmp = -1;
@@ -100,7 +103,7 @@ static int draw_menu(struct menu *menu)
     return tmp;
 }
 
-/* @ret: index of previous/next visible entry in menu */
+/** Retorna o índice da próxima/última entrada visível no menu */
 static int seek_to_entry(struct menu *menu, int whence)
 {
     int inc = menu->cur_entry;
@@ -123,7 +126,7 @@ static int seek_to_entry(struct menu *menu, int whence)
     }
 }
 
-/* draw the input bar */
+/** Desenha a barra de entrada */
 static void draw_input(WINDOW *win, int x, int y, int width,
         struct in_ent *input, int str_idx, int curs_pos, int len)
 {
@@ -138,7 +141,7 @@ static void draw_input(WINDOW *win, int x, int y, int width,
 }
 
 
-/* get user input and then validate it */
+/** Lê uma entrada do usuário e chama a função de validação */
 static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *), WINDOW *menu_win, void *ctx)
 {
     init_pair(1, COLOR_RED, COLOR_BLACK);
@@ -239,6 +242,7 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
                 }
 
                 break;
+            // Caracteres ASCII: alfanuméricos + símbolos
             case ' ' ... '~':
                 if (len < input->bufsize) {
                     memmove(&input->buf[str_idx + 1], &input->buf[str_idx], len++ - str_idx);
@@ -251,6 +255,8 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
                 }
 
                 break;
+            // Várias formas diferentes de representar backspace...
+            // Espero que uma delas funcione no seu terminal.
             case KEY_BACKSPACE:
             case '8' & 0x1f:
             case '?' & 0x1f:
@@ -286,14 +292,15 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
     reset_color_pairs();
 }
 
-/* makes a menu with the corresponding entries */
 int run_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     if (!menu || !menu->entries)
         return -1;
 
+    if (menu->box)
+        box(menu->win, 0, 0);
+
     keypad(menu->win, TRUE);
-    box(menu->win, 0, 0);
     wmove(menu->win, 1, 1);
 
     draw_menu(menu);

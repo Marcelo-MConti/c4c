@@ -7,8 +7,7 @@ size_t utf8len(const char *str)
     size_t len;
 
     for (len = 0; *str; str++)
-        if ((*str & 0xc0) != 0x80) len++; // evil hexa pointer hack
-        // y = (x * (x - u)) / 2 // second newton's method not nedeed
+        if ((*str & 0xc0) != 0x80) len++;
 
     return len;
 }
@@ -39,7 +38,20 @@ void print_truncate(WINDOW *win, char *str, int len, int trunc)
     }
 }
 
-uint32_t randinho() {
-  srand(time(NULL));
-  return (rand() << 16) + rand();
+__attribute__((constructor))
+static void srand32()
+{
+    srand(time(NULL));
+}
+
+uint32_t rand32()
+{
+    static const int n_bits = __builtin_clz(RAND_MAX);
+
+    uint32_t result = 0;
+
+    for (int shifted = 0; shifted < 16; shifted += n_bits)
+        result = (result << n_bits) + rand();
+
+    return result;
 }

@@ -16,7 +16,7 @@ typedef struct net_msg {
 
 struct net_msg hanshake(const char *addr, int port)
 {
-  net_msg msg = {HANSHAKE, randinho()};
+  net_msg msg = {HANSHAKE, rand32()};
 
   struct sockaddr_in net_sock = {.sin_family = AF_INET6, .sin_port = htons(port)};
 

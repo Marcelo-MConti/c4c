@@ -21,8 +21,18 @@ enum main_menu_entry {
     MM_ENTRY_LAST
 };
 
-// NOTE: allocates `host`
-const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
+/**
+ * Valida e faz parsing de uma string especificando um host e uma porta (`buf`).
+ * O host pode ser um nome de domínio, um endereço IPv4 ou um endereço IPv6.
+ *
+ * Retorna `NULL` se a string for válida e uma mensagem de erro se houve um erro
+ * de validação/parsing.
+ *
+ * Se `host` e `port` forem diferentes de `NULL`, guarda em `*host` e `*port` o
+ * host e a porta lidos. `*host` é alocado dinamicamente e deve ser desalocado
+ * por quem chamou.
+ */
+static const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
 {
     static const char *invalid_v6 = "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'.";
     static const char *invalid_host = "Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain name or IPv4/6 address.";
@@ -30,7 +40,7 @@ const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
     char *colon = strchr(buf, ':');
     char *v6end = NULL;
     
-    // Assume it's an IPv6 address if it has two colons or uses brackets
+    // Assumir que é um endereço IPv6 se usar dois "dois pontos" ou colchetes
     if (colon && strchr(colon + 1, ':')) {
         colon = v6end = strchr(buf, '\0');
     } else if (buf[0] == '[') {
@@ -66,48 +76,48 @@ const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
         return invalid_host;
 
 valid_host:
-    if (parsed_port == 0) {
-        if (port)
-            *port = DEFAULT_PORT;
-    } else {
-        if (port)
-            *port = parsed_port;
-    }
+    if (port)
+        *port = parsed_port ?: DEFAULT_PORT; 
 
-    if (v6end) {
-        char *v6start = &buf[0];
+    if (host) {
+        char *host_start = &buf[0];
+        size_t host_len;
         
-        if (*v6end == ']')
-            v6start++;
+        if (v6end) {
+            if (*v6end == ']')
+                host_start++;
 
-        if (host) {
-            *host = malloc(v6end - v6start);
-            memcpy(*host, v6start, v6end - v6start);
+            host_len = v6end - host_start;
+        } else {
+            host_len = colon - buf;
         }
-    } else {
-        if (host) {
-            *host = malloc(colon - buf);
-            memcpy(*host, buf, colon - buf);
-        }
+
+        *host = malloc(host_len + 1);
+        memcpy(*host, buf, host_len);
+
+        (*host)[host_len] = '\0';
     }
 
     return NULL;
 }
 
-// Validates a host string. The host string should either be of the form
-// `HOST:PORT` or `HOST`. If a port isn't supplied, the default value is
-// used.
+/**
+ * Usada como callback para validar o campo de entrada `HOST` no menu.
+ * vd. `validate_split_host`.
+ */ 
 const char *menu_validate_host(char *buf)
 {
     return validate_split_host_port(buf, NULL, NULL);
 }
 
-bool menu_condition_netplay(struct menu *menu)
+/** Verifica se a opção netplay está selecionada no menu. */ 
+static bool menu_condition_netplay(struct menu *menu)
 {
     struct roul_ent *play_mode = &(*menu->entries)[MM_ENTRY_PLAYMODE]->roulette;
     return play_mode->cur_option == PLAY_NET;
 }
 
+/** Entradas do menu principal do jogo, definidas declarativamente. */
 static union entry_un *main_menu_entries[] = (union entry_un *[]) {
     [MM_ENTRY_START] = &(union entry_un) { .text = {
         ENTRY_SELECTABLE, "START"
@@ -134,6 +144,11 @@ static union entry_un *main_menu_entries[] = (union entry_un *[]) {
     [MM_ENTRY_LAST] = NULL
 };
 
+/**
+ * Verifica se o terminal ainda tem o tamanho mínimo após ter
+ * sido redimensionado. Caso não tenha, mostra uma mensagem de
+ * aviso, aguardando até que o terminal seja redimensionado novamente.
+ */
 void enforce_min_terminal_size() {
     while (LINES < MIN_LINES || COLS < MIN_COLS) {
         werase(stdscr);
@@ -155,7 +170,11 @@ struct redraw_menu_ctx {
     int win_height;
 };
 
-void on_redraw_menu(WINDOW *menu_win, void *ctx)
+/**
+ * Função de callback chamada ao redesenhar o menu,
+ * mantendo-o centralizado.
+ */ 
+static void on_redraw_menu(WINDOW *menu_win, void *ctx)
 {
     enforce_min_terminal_size();
 
@@ -174,7 +193,11 @@ void on_redraw_menu(WINDOW *menu_win, void *ctx)
     wnoutrefresh(redraw->logo_win);
 }
 
-void on_redraw_game(WINDOW *game_win, void *ctx)
+/**
+ * Função de callback chamada ao redesenhar a tela do jogo,
+ * mantendo-a centralizada.
+ */
+static void on_redraw_game(WINDOW *game_win, void *ctx)
 {
     enforce_min_terminal_size();
 
@@ -194,7 +217,7 @@ void on_redraw_game(WINDOW *game_win, void *ctx)
 
 int main()
 {
-    /* Required for ncurses to support UTF-8 */
+    // Necessário para que o ncurses suporte UTF-8 em algumas versões
     setlocale(LC_CTYPE, "");
     initscr();
 
@@ -226,6 +249,7 @@ int main()
     int y_offset = (LINES - win_height) / 2;
     int x_offset = (COLS - win_width) / 2;
     
+    // Mostra a logo do jogo
     WINDOW *logo_win = newwin(ARR_SIZE(logo), win_width, y_offset, x_offset);
 
     int logo_width = (win_width - max_logo_width) / 2;
@@ -239,7 +263,8 @@ int main()
     
     struct menu main_menu = {
         .entries = &main_menu_entries,
-        .win = menu_win
+        .win = menu_win,
+        .box = false
     };
     
     struct redraw_menu_ctx redraw_ctx = {
@@ -256,6 +281,7 @@ int main()
 
         switch (entry) {
             case MM_ENTRY_START: {
+                // Obtém o modo de jogo e o host (usado se for netplay) do menu
                 enum play_mode mode = (*main_menu.entries)[MM_ENTRY_PLAYMODE]->roulette.cur_option;
                 char *host = (*main_menu.entries)[MM_ENTRY_NETPLAY_HOST]->conditional.entry->input.buf;
 
@@ -286,6 +312,6 @@ int main()
                 endwin();
 
                 return 0;
-       }
+        }
     }
 }
