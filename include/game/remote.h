@@ -1,12 +1,12 @@
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "game.h"
 
-enum net_type: uint32_t {
-  HANSHAKE,
-  MOVE,
-  ACK,
-  ERROR
+enum net_msg_type {
+    HANDSHAKE,
+    MOVE,
+    ACK
 };
 
 bool remote_init_play(char *host, uint16_t port);
