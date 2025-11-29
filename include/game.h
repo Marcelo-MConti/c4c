@@ -24,6 +24,7 @@ enum tile {
 
 struct game {
     enum tile (*board)[];
+    uint8_t (*blink)[];
     uint8_t cur_player;
     int width, height;
 };

@@ -1,4 +1,5 @@
 #include <curses.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include "game.h"
@@ -45,14 +46,15 @@ static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos
     return board[pos->y][pos->x] != NONE;
 }
 
-static int check_win(struct game *game, struct position *pos)
+static uint8_t (*check_win(struct game *game, struct position *pos))[4]
 {
     enum tile (*board)[game->width] = game->board;
 
     if (board[pos->y][pos->x] == NONE)
         return false;
 
-    uint8_t same_neighbours[4] = {0};
+    static uint8_t same_neighbours[4];
+    memset(same_neighbours, 0, sizeof same_neighbours);
 
     for (int i = 0; i < 8; i++) {
         struct position chk_pos = { pos->x, pos->y };
@@ -71,10 +73,10 @@ static int check_win(struct game *game, struct position *pos)
 
     for (int i = 0; i < 4; i++) {
         if (same_neighbours[i] >= 3)
-            return i;
+            return &same_neighbours;
     }
 
-    return -1;
+    return NULL;
 }
 
 static void print_board(WINDOW *win, struct game *game)
@@ -118,31 +120,21 @@ static void print_board(WINDOW *win, struct game *game)
     }
 }
 
-void mark_winning_tiles(WINDOW *win, struct game *game, struct position *pos, int winning_axis)
+static void mark_winning_tiles(WINDOW *win, struct game *game, struct position *pos, int winning_axis)
 {
     enum tile (*board)[game->width] = game->board;
     uint8_t (*blink)[game->width] = game->blink;
 
     wattrset(win, COLOR_PAIR(board[pos->y][pos->x] | A_BLINK));
 
-    struct position chk_a = { pos->x, pos->y };
+    struct position chk = { pos->x, pos->y };
 
-    while (is_valid_nonempty_pos(game, &chk_a) &&
-            board[pos->y][pos->x] == board[chk_a.y][chk_a.x]) {
-        blink[chk_a.y][chk_a.x] = 1;
+    while (is_valid_nonempty_pos(game, &chk) &&
+            board[pos->y][pos->x] == board[chk.y][chk.x]) {
+        blink[chk.y][chk.x] = 1;
 
-        chk_a.x += neighbour_pos[winning_axis].x;
-        chk_a.y += neighbour_pos[winning_axis].y;
-    }
-
-    struct position chk_b = { pos->x, pos->y };
-
-    while (is_valid_nonempty_pos(game, &chk_b) &&
-            board[pos->y][pos->x] == board[chk_b.y][chk_b.x]) {
-        blink[chk_b.y][chk_b.x] = 1;
-
-        chk_b.x -= neighbour_pos[winning_axis].x;
-        chk_b.y -= neighbour_pos[winning_axis].y;
+        chk.x += neighbour_pos[winning_axis].x;
+        chk.y += neighbour_pos[winning_axis].y;
     }
     
     wattrset(win, COLOR_PAIR(0));
@@ -187,10 +179,16 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
         board[pos->y][pos->x] = PLAYER_TO_CHECKER(cur_player);
         print_board(game_win, &game);
 
-        int winning_axis = check_win(&game, pos);
+        uint8_t (*winning_axes)[4] = check_win(&game, pos);
 
-        if (winning_axis != -1) {
-            mark_winning_tiles(game_win, &game, pos, winning_axis);
+        if (winning_axes) {
+            for (int i = 0; i < 4; i++) {
+                if ((*winning_axes)[i] >= 3) {
+                    mark_winning_tiles(game_win, &game, pos, i);
+                    mark_winning_tiles(game_win, &game, pos, i + 4);
+                }
+            }
+
             print_board(game_win, &game);
 
             wrefresh(game_win);

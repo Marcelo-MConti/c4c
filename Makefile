@@ -43,7 +43,7 @@ uninstall:
 
 clean:
 	rm -f c4c $(OBJECTS) $(OBJECTS:.o=.d)
-	rm -f -d $(BUILD)
+	rm -rf $(BUILD)
 
 -include  $(OBJECTS:.o=.d)
 .PHONY: all install uninstall clean
