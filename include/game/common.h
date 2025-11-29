@@ -12,6 +12,8 @@ enum player {
     PLAYER_YLW
 };
 
+extern volatile bool player_wants_to_quit;
+
 int col_is_not_full(struct game *game, int column);
 void print_arrow(WINDOW *win, int idx);
 void print_hud(struct game *game);

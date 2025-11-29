@@ -277,7 +277,7 @@ int main()
         on_redraw_menu(menu_win, &redraw_ctx);
         doupdate();
         
-        int entry = run_menu(&main_menu, on_redraw_menu, &redraw_ctx);
+        int entry = show_menu(&main_menu, on_redraw_menu, &redraw_ctx);
 
         switch (entry) {
             case MM_ENTRY_START: {

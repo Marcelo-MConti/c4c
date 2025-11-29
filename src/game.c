@@ -1,6 +1,7 @@
-#include <curses.h>
 #include <string.h>
 #include <stdlib.h>
+#include <curses.h>
+#include <signal.h>
 
 #include "game.h"
 #include "game/local.h"
@@ -133,8 +134,17 @@ static void mark_winning_tiles(WINDOW *win, struct game *game, struct position *
     wattrset(win, COLOR_PAIR(0));
 }
 
+volatile bool player_wants_to_quit = false;
+
+static void set_player_wants_to_quit(int signo)
+{
+    player_wants_to_quit = true;
+}
+
 void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
+    signal(SIGINT, set_player_wants_to_quit);
+
     redrawwin(stdscr);
     wrefresh(stdscr);
 
@@ -216,4 +226,7 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
     delwin(game_win);
 
     free(game.board);
+    free(game.blink);
+    
+    signal(SIGINT, SIG_DFL);
 }

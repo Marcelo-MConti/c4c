@@ -91,6 +91,6 @@ union entry_un {
  * Mostra um menu com os parâmetros dados por `menu`. `redraw` permite adicionar
  * comportamento adicional à renderização do menu.
  */
-int run_menu(struct menu *menu, void (*redraw)(WINDOW *menu_win, void *ctx), void *ctx);
+int show_menu(struct menu *menu, void (*redraw)(WINDOW *menu_win, void *ctx), void *ctx);
 
 #endif /* _UI_MENU_H_ */

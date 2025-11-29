@@ -292,7 +292,7 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
     reset_color_pairs();
 }
 
-int run_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
+int show_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     if (!menu || !menu->entries)
         return -1;

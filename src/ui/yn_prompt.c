@@ -13,9 +13,9 @@ const char *labels[][MAX_LABELS] = {
     [YN_LABEL_OK_CANCEL] = { "Cancel", "OK" }
 };
 
-bool run_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
+bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
-    const int width = 30;
+    const int width = 35;
     const int height = 5;
     WINDOW *win = newwin(height, width, 1, 1);
 
