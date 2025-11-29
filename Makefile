@@ -63,6 +63,8 @@ $(BUILD)/%.o: src/%.c
 
 messages/all.pot: $(SOURCES)
 	xgettext --no-location -j -o $@ -k_ -kN_ $(SOURCES)
+	grep -v 'POT-Creation-Date:' $@ > $@.nostamp
+	mv $@.nostamp $@
 
 messages/%.po: messages/all.pot
 	msgmerge -U $@ $?

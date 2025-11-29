@@ -38,7 +38,7 @@ msgstr "Endereço IPv6 inválido! Use `[ENDEREÇO]:[PORTA]' ou apenas `ENDEREÇO
 msgid ""
 "Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain "
 "name or IPv4/6 address."
-msgstr "Host inválido! Esperado `HOST:PORTA' ou só `HOST' (um nome de domínio)"
+msgstr "Host inválido! Esperado `HOST:PORTA' ou só `HOST' (um nome de domínio"
 " ou endereço IPv4/6)."
 
 #, c-format
