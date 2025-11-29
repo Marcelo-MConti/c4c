@@ -17,9 +17,9 @@ enum play_mode {
 };
 
 enum tile {
-    NONE = 0,
-    RED_CHECKER,
-    YLW_CHECKER
+    TILE_NONE = 0,
+    TILE_RED_CHECKER,
+    TILE_YLW_CHECKER
 };
 
 struct game {

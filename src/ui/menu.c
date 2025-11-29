@@ -71,7 +71,7 @@ static bool draw_entry(struct menu *menu, int index)
             return -1;
     }
 
-    wattrset(menu->win, 0);
+    wattrset(menu->win, A_NORMAL);
 
     return true;
 }

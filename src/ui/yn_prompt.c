@@ -76,7 +76,7 @@ bool run_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WIND
         waddstr(win, labels[type][N]);
         waddch(win, '>');
 
-        wattrset(win, 0);
+        wattrset(win, A_NORMAL);
 
         wmove(win, 3, space_around + n_label_len + 2 + space_between);
 
@@ -87,7 +87,7 @@ bool run_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WIND
         waddstr(win, labels[type][Y]);
         waddch(win, '>');
 
-        wattrset(win, 0);
+        wattrset(win, A_NORMAL);
 
         if (first)
             on_redraw(win, NULL);

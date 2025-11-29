@@ -65,7 +65,10 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
                 break;
             case KEY_RESIZE:
                 on_redraw(win, ctx);
+
+                print_hud(game);
                 doupdate();
+
                 break;
             case '1' ... '7':
                 idx = ch - '1';

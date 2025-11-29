@@ -4,20 +4,13 @@
 
 #include "game.h"
 #include "game/local.h"
+#include "game/common.h"
 
 #include "chars.h"
 
 
 #define ERROR_COLOR RED_CHECKER
 #define WARN_COLOR  YLW_CHECKER
-
-#define PLAYER_TO_CHECKER(p) ((p) + 1)
-
-
-enum player {
-    PLAYER_RED,
-    PLAYER_YLW
-};
 
 
 /**
@@ -43,14 +36,14 @@ static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos
         return false;
 
     enum tile (*board)[game->width] = game->board;
-    return board[pos->y][pos->x] != NONE;
+    return board[pos->y][pos->x] != TILE_NONE;
 }
 
 static uint8_t (*check_win(struct game *game, struct position *pos))[4]
 {
     enum tile (*board)[game->width] = game->board;
 
-    if (board[pos->y][pos->x] == NONE)
+    if (board[pos->y][pos->x] == TILE_NONE)
         return false;
 
     static uint8_t same_neighbours[4];
@@ -160,8 +153,8 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
     WINDOW *game_win = newwin(win_height, win_width, y_offset, x_offset);
     keypad(game_win, TRUE);
 
-    init_pair(RED_CHECKER, COLOR_RED, COLOR_BLACK);
-    init_pair(YLW_CHECKER, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(TILE_RED_CHECKER, COLOR_RED, COLOR_BLACK);
+    init_pair(TILE_YLW_CHECKER, COLOR_YELLOW, COLOR_BLACK);
 
     box(game_win, 0, 0);
 
@@ -170,13 +163,27 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     print_board(game_win, &game);
 
-    int cur_player = 0;
+    if (mode != PLAY_NET) {
+        game.cur_player = PLAYER_RED;
+    } else {
+        // TODO: send handshake to determine if we will be yellow or red
+    }
+
+    int n_turns = 0;
     enum tile (*board)[game.width] = game.board;
 
     while (true) {
+        if (n_turns == width * height) {
+            // TODO: handle tie    
+        }
+        
+        print_hud(&game);
+        refresh();
+
         struct position *pos = local_play(game_win, &game, on_redraw, ctx);
 
-        board[pos->y][pos->x] = PLAYER_TO_CHECKER(cur_player);
+        board[pos->y][pos->x] = PLAYER_TO_CHECKER(game.cur_player);
+
         print_board(game_win, &game);
 
         uint8_t (*winning_axes)[4] = check_win(&game, pos);
@@ -196,13 +203,14 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
             y_offset = (LINES - 3) / 2 - 10;
             x_offset = (COLS - 20) / 2;
 
-            mvwaddstr(stdscr, LINES - 3, 1, end_messages[mode][cur_player]);
+            mvwaddstr(stdscr, LINES - 3, 1, end_messages[mode][game.cur_player]);
             wgetch(stdscr);
 
             break;
         }
 
-        cur_player = !cur_player;
+        n_turns++;
+        game.cur_player = !game.cur_player;
     }
 
     delwin(game_win);
