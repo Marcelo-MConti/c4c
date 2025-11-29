@@ -191,11 +191,12 @@ static void on_redraw_game(WINDOW *game_win, void *ctx)
 
 int main()
 {
-    // Necessário para que o ncurses suporte UTF-8 em algumas versões
+    // Necessário para que o ncurses suporte UTF-8 e para que o gettext funcione
+    setlocale(LC_ALL, "");
     setlocale(LC_CTYPE, "");
 
-    bindtextdomain("c4c", PREFIX "/share/locale");
     textdomain("c4c");
+    bindtextdomain("c4c", PREFIX "/share/locale");
 
     initscr();
 

@@ -70,5 +70,6 @@ messages/%.po: messages/all.pot
 
 $(BUILD)/messages/%/LC_MESSAGES/c4c.mo: messages/%.po $(BUILD)/messages/%/LC_MESSAGES/
 	msgfmt -o $@ $<
+	touch $@
 
 .PRECIOUS: %/
