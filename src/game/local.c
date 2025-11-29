@@ -21,8 +21,14 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
         if (player_wants_to_quit) {
             player_wants_to_quit = show_yn_prompt("Do you really want to quit?", YN_LABEL_YES_NO, on_redraw, ctx);
 
-            if (player_wants_to_quit)
+            if (player_wants_to_quit) {
+                nocbreak();
+                echo();
+                curs_set(1);
+                endwin();
+
                 exit(0);
+            }
 
             on_redraw(win, NULL);
 
