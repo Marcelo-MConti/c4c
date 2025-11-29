@@ -33,7 +33,7 @@ PKGCFLAGS := $(shell pkg-config --cflags $(NCURSES))
 LANGS := pt
 MOBJECTS := $(LANGS:%=$(BUILD)/messages/%/LC_MESSAGES/c4c.mo)
 
-all: c4c mo
+all: c4c $(MOBJECTS)
 
 %/:
 	mkdir -p $@
