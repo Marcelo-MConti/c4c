@@ -3,6 +3,8 @@
 #include <curses.h>
 #include <signal.h>
 
+#include <libintl.h>
+
 #include "game.h"
 #include "game/local.h"
 #include "game/common.h"
@@ -12,6 +14,9 @@
 
 #define ERROR_COLOR RED_CHECKER
 #define WARN_COLOR  YLW_CHECKER
+
+#define _(x) gettext(x)
+#define N_(x) x
 
 
 /**
@@ -25,9 +30,9 @@ static const struct position neighbour_pos[] = {
 };
 
 static const char *end_messages[][2] = {
-    [PLAY_LOCAL] = { "Red won!", "Yellow won!" },
-    [PLAY_LOCAL_PC] = { "You won.", "The computer won." },
-    [PLAY_NET] = { "You won.", "You lost." }
+    [PLAY_LOCAL] = { N_("Red won!"), N_("Yellow won!") },
+    [PLAY_LOCAL_PC] = { N_("You won."), N_("The computer won.") },
+    [PLAY_NET] = { N_("You won."), N_("You lost.") }
 };
 
 
@@ -45,7 +50,7 @@ static uint8_t (*check_win(struct game *game, struct position *pos))[4]
     enum tile (*board)[game->width] = game->board;
 
     if (board[pos->y][pos->x] == TILE_NONE)
-        return false;
+        return NULL;
 
     static uint8_t same_neighbours[4];
     memset(same_neighbours, 0, sizeof same_neighbours);
@@ -184,7 +189,7 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     while (true) {
         if (n_turns == width * height) {
-            // TODO: handle tie    
+            // TODO: handle tie
         }
         
         print_hud(&game);
@@ -213,7 +218,8 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
             y_offset = (LINES - 3) / 2 - 10;
             x_offset = (COLS - 20) / 2;
 
-            mvwaddstr(stdscr, LINES - 3, 1, end_messages[mode][game.cur_player]);
+            // TODO: center this message
+            mvwaddstr(stdscr, LINES - 3, 1, _(end_messages[mode][game.cur_player]));
             wgetch(stdscr);
 
             break;

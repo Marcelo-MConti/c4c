@@ -4,10 +4,14 @@
 #include <locale.h>
 #include <curses.h>
 
+#include <libintl.h>
+
 #include "util.h"
 #include "logo.h"
 #include "game.h"
 #include "ui/menu.h"
+
+#define _(x) gettext(x)
 
 #if !defined(C4C_ASCII) && !defined(C4C_COLOR)
 #error "Enable either ASCII mode or color support (the game is unplayable otherwise)"
@@ -34,8 +38,8 @@ enum main_menu_entry {
  */
 static const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
 {
-    static const char *invalid_v6 = "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'.";
-    static const char *invalid_host = "Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain name or IPv4/6 address.";
+    const char *invalid_v6 = _("Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'.");
+    const char *invalid_host = _("Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain name or IPv4/6 address.");
 
     char *colon = strchr(buf, ':');
     char *v6end = NULL;
@@ -117,33 +121,6 @@ static bool menu_condition_netplay(struct menu *menu)
     return play_mode->cur_option == PLAY_NET;
 }
 
-/** Entradas do menu principal do jogo, definidas declarativamente. */
-static union entry_un *main_menu_entries[] = (union entry_un *[]) {
-    [MM_ENTRY_START] = &(union entry_un) { .text = {
-        ENTRY_SELECTABLE, "START"
-    }},
-    [MM_ENTRY_QUIT] = &(union entry_un) { .text = {
-        ENTRY_SELECTABLE, "QUIT"
-    }},
-    [MM_ENTRY_PLAYMODE] = &(union entry_un) { .roulette = {
-        ENTRY_ROULETTE, 0, "PLAY MODE",
-        (char *[]) {
-            [PLAY_LOCAL] = "PL vs. PL",
-            [PLAY_LOCAL_PC] = "PL vs. PC",
-            [PLAY_NET] = "NETPLAY",
-            [PLAY_LAST] = NULL
-        }
-    }},
-    [MM_ENTRY_NETPLAY_HOST] = &(union entry_un) { .conditional = {
-        ENTRY_CONDITIONAL,
-        &(union entry_un) { .input = {
-            ENTRY_INPUT, 255, "HOST", (char [256]) {0}, "Hostname or address of peer:", menu_validate_host
-        }},
-        menu_condition_netplay
-    }},
-    [MM_ENTRY_LAST] = NULL
-};
-
 /**
  * Verifica se o terminal ainda tem o tamanho mínimo após ter
  * sido redimensionado. Caso não tenha, mostra uma mensagem de
@@ -154,10 +131,7 @@ void enforce_min_terminal_size() {
         werase(stdscr);
         wnoutrefresh(stdscr);
 
-        // NOTE: update article if `MIN_COLS` changes
-        static const char msg[] = "c4c needs at least an " STR(MIN_COLS) "x" STR(MIN_LINES) " terminal to work.";
-
-        mvwaddstr(stdscr, 1, 1, msg);
+        mvwprintw(stdscr, 1, 1, _("c4c needs at least a %dx%d terminal to work."), MIN_COLS, MIN_LINES);
 
         doupdate();
         wgetch(stdscr);
@@ -219,12 +193,16 @@ int main()
 {
     // Necessário para que o ncurses suporte UTF-8 em algumas versões
     setlocale(LC_CTYPE, "");
+
+    bindtextdomain("c4c", PREFIX "/share/locale");
+    textdomain("c4c");
+
     initscr();
 
 #ifdef C4C_COLOR
     if (!has_colors())
-        errx(1, "This terminal does not support colors, which is required for c4c to run.\n"
-                "Either find a terminal that supports colors or recompile c4c without color support.");
+        errx(1, "%s", _("This terminal does not support colors, which is required for c4c to run.\n"
+                  "Either find a terminal that supports colors or recompile c4c without color support."));
 
     start_color();
 #endif
@@ -242,6 +220,33 @@ int main()
         if (len > max_logo_width)
             max_logo_width = len;
     }
+
+    /** Entradas do menu principal do jogo, definidas declarativamente. */
+    union entry_un *main_menu_entries[] = {
+        [MM_ENTRY_START] = &(union entry_un) { .text = {
+            ENTRY_SELECTABLE, _("START")
+        }},
+        [MM_ENTRY_QUIT] = &(union entry_un) { .text = {
+            ENTRY_SELECTABLE, _("QUIT")
+        }},
+        [MM_ENTRY_PLAYMODE] = &(union entry_un) { .roulette = {
+            ENTRY_ROULETTE, 0, _("PLAY MODE"),
+            (char *[]) {
+                [PLAY_LOCAL] = _("PL vs. PL"),
+                [PLAY_LOCAL_PC] = _("PL vs. PC"),
+                [PLAY_NET] = _("NETPLAY"),
+                [PLAY_LAST] = NULL
+            }
+        }},
+        [MM_ENTRY_NETPLAY_HOST] = &(union entry_un) { .conditional = {
+            ENTRY_CONDITIONAL,
+            &(union entry_un) { .input = {
+                ENTRY_INPUT, 255, _("HOST"), (char [256]) {0}, _("Hostname or address of peer:"), menu_validate_host
+            }},
+            menu_condition_netplay
+        }},
+        [MM_ENTRY_LAST] = NULL
+    };
 
     int win_height = ARR_SIZE(logo) + ARR_SIZE(main_menu_entries) - 1 + 5;
     int win_width = MAX(max_logo_width, 30);
@@ -288,10 +293,10 @@ int main()
                 if (mode == PLAY_NET && *host == '\0') {
                     init_pair(1, COLOR_RED, COLOR_BLACK);
 
-                    static const char err[] = "You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode.";
+                    const char *err = _("You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode.");
 
                     wattrset(stdscr, COLOR_PAIR(1));
-                    mvwaddstr(stdscr, LINES - 2, (COLS - sizeof(err) - 1) / 2, err);
+                    mvwaddstr(stdscr, LINES - 2, (COLS - utf8len(err)) / 2, err);
                     wattrset(stdscr, COLOR_PAIR(0));
                     wgetch(stdscr);
                     

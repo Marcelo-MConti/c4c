@@ -1,0 +1,97 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-29 13:18-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Red won!"
+msgstr ""
+
+msgid "Yellow won!"
+msgstr ""
+
+msgid "You won."
+msgstr ""
+
+msgid "The computer won."
+msgstr ""
+
+msgid "You lost."
+msgstr ""
+
+msgid "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'."
+msgstr ""
+
+msgid ""
+"Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain "
+"name or IPv4/6 address."
+msgstr ""
+
+#, c-format
+msgid "c4c needs at least a %dx%d terminal to work."
+msgstr ""
+
+msgid ""
+"This terminal does not support colors, which is required for c4c to run.\n"
+"Either find a terminal that supports colors or recompile c4c without color "
+"support."
+msgstr ""
+
+msgid "START"
+msgstr ""
+
+msgid "QUIT"
+msgstr ""
+
+msgid "PLAY MODE"
+msgstr ""
+
+msgid "PL vs. PL"
+msgstr ""
+
+msgid "PL vs. PC"
+msgstr ""
+
+msgid "NETPLAY"
+msgstr ""
+
+msgid "HOST"
+msgstr ""
+
+msgid "Hostname or address of peer:"
+msgstr ""
+
+msgid ""
+"You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode."
+msgstr ""
+
+msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile"
+msgstr ""
+
+msgid "Do you really want to quit?"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "OK"
+msgstr ""

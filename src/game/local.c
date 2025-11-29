@@ -1,10 +1,14 @@
 #include <stdlib.h>
 #include <curses.h>
 
+#include <libintl.h>
+
 #include "game.h"
 #include "game/common.h"
 
 #include "ui/yn_prompt.h"
+
+#define _(x) gettext(x)
 
 
 struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
@@ -19,7 +23,7 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
         ch = wgetch(win);
 
         if (player_wants_to_quit) {
-            player_wants_to_quit = show_yn_prompt("Do you really want to quit?", YN_LABEL_YES_NO, on_redraw, ctx);
+            player_wants_to_quit = show_yn_prompt(_("Do you really want to quit?"), YN_LABEL_YES_NO, on_redraw, ctx);
 
             if (player_wants_to_quit) {
                 nocbreak();

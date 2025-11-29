@@ -22,7 +22,7 @@ struct net_msg {
             uint32_t col;
         } move;
         struct {
-            uint32_t z;
+            uint32_t ref;
         } ack;
     };
 } __attribute__((packed));

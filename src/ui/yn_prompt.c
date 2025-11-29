@@ -1,7 +1,13 @@
 #include <string.h>
 #include <curses.h>
 
+#include <libintl.h>
+
+#include "util.h"
 #include "ui/yn_prompt.h"
+
+#define _(x) gettext(x)
+#define N_(x) x
 
 #define N 0
 #define Y 1
@@ -9,8 +15,8 @@
 #define MAX_LABELS 2
 
 const char *labels[][MAX_LABELS] = {
-    [YN_LABEL_YES_NO] = { "No", "Yes" },
-    [YN_LABEL_OK_CANCEL] = { "Cancel", "OK" }
+    [YN_LABEL_YES_NO] = { N_("No"), N_("Yes") },
+    [YN_LABEL_OK_CANCEL] = { N_("Cancel"), N_("OK") }
 };
 
 bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
@@ -22,8 +28,8 @@ bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WIN
     box(win, 0, 0);
     keypad(win, TRUE);
 
-    size_t y_label_len = strlen(labels[type][Y]);
-    size_t n_label_len = strlen(labels[type][N]);
+    size_t y_label_len = utf8len(_(labels[type][Y]));
+    size_t n_label_len = utf8len(_(labels[type][N]));
 
     size_t total_len = y_label_len + n_label_len + 4;
 
@@ -73,7 +79,7 @@ bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WIN
             wattrset(win, A_REVERSE);
 
         waddch(win, '<');
-        waddstr(win, labels[type][N]);
+        waddstr(win, _(labels[type][N]));
         waddch(win, '>');
 
         wattrset(win, A_NORMAL);
@@ -84,7 +90,7 @@ bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WIN
             wattrset(win, A_REVERSE);
  
         waddch(win, '<');
-        waddstr(win, labels[type][Y]);
+        waddstr(win, _(labels[type][Y]));
         waddch(win, '>');
 
         wattrset(win, A_NORMAL);

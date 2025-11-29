@@ -39,7 +39,7 @@ static bool draw_entry(struct menu *menu, int index)
         case ENTRY_TEXT:
         case ENTRY_SELECTABLE: ;
             /* -2: bordas */
-            int newx = winx - strlen(ent->text.text) - 2;
+            int newx = winx - utf8len(ent->text.text) - 2;
             mvwaddstr(menu->win, cury, newx, ent->text.text);
 
             break;
@@ -47,7 +47,7 @@ static bool draw_entry(struct menu *menu, int index)
             wprintw(menu->win, " %s: ", ent->roulette.text);
             waddstr(menu->win, "< ");
 
-            int len = strlen(ent->roulette.alt[ent->roulette.cur_option]);
+            int len = utf8len(ent->roulette.alt[ent->roulette.cur_option]);
 
             /* -1: borda, -2: "> " no final */
             mvwaddstr(menu->win, cury, winx - 1 - 2 - len,
@@ -60,6 +60,8 @@ static bool draw_entry(struct menu *menu, int index)
             if (!ent->input.buf[0]) {
                 mvwaddch(menu->win, cury, winx - 3, '_');
             } else {
+                // O sistema de input não suporta UTF-8, então usar `utf8len`
+                // aqui seria semanticamente incorreto
                 int len = strlen(ent->input.buf);
 
                 wmove(menu->win, cury, winx - ((len < 15) ? len : 15) - 2);
@@ -219,7 +221,7 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
 
                     if (err) {
                         wattrset(stdscr, COLOR_PAIR(1));
-                        mvwaddstr(stdscr, LINES - 2, (COLS - strlen(err)) / 2, err);
+                        mvwaddstr(stdscr, LINES - 2, (COLS - utf8len(err)) / 2, err);
                         wattrset(stdscr, COLOR_PAIR(0));
 
                         redraw = true;

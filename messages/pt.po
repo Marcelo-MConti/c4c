@@ -1,0 +1,102 @@
+# Portuguese translations for c4c package.
+# Copyright (C) 2025 THE c4c'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the c4c package.
+# <joaog.bastos@protonmail.ch>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: c4c\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-29 11:30-0300\n"
+"PO-Revision-Date: 2025-11-29 11:32-0300\n"
+"Last-Translator: <joaog.bastos@protonmail.ch>\n"
+"Language-Team: Portuguese <translation-team-pt@googlegroups.com>\n"
+"Language: pt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Red won!"
+msgstr "Vermelho ganhou!"
+
+msgid "Yellow won!"
+msgstr "Amarelo ganhou!"
+
+msgid "You won."
+msgstr "Você ganhou."
+
+msgid "The computer won."
+msgstr "O PC ganhou."
+
+msgid "You lost."
+msgstr "Você perdeu."
+
+msgid "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'."
+msgstr "Endereço IPv6 inválido! Use `[ENDEREÇO]:[PORTA]' ou apenas `ENDEREÇO'."
+
+msgid ""
+"Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain "
+"name or IPv4/6 address."
+msgstr "Host inválido! Esperado `HOST:PORTA' ou só `HOST' (um nome de domínio)"
+" ou endereço IPv4/6)."
+
+#, c-format
+msgid "c4c needs at least a %dx%d terminal to work."
+msgstr "c4c precisa de um terminal com dimensões de pelo menos %dx%d para funcionar."
+
+msgid ""
+"This terminal does not support colors, which is required for c4c to run.\n"
+"Either find a terminal that supports colors or recompile c4c without color "
+"support."
+msgstr ""
+"Esse terminal não suporta cores, o que é necessário para o c4c rodar.\n"
+"Use um terminal que suporte cores ou recompile o c4c, desabilitando suporte "
+"a cores."
+
+msgid "START"
+msgstr "COMEÇAR"
+
+msgid "QUIT"
+msgstr "SAIR"
+
+msgid "PLAY MODE"
+msgstr "MODO DE JOGO"
+
+msgid "PL vs. PL"
+msgstr "PvP local"
+
+msgid "PL vs. PC"
+msgstr "vs. PC"
+
+msgid "NETPLAY"
+msgstr "PvP online"
+
+msgid "HOST"
+msgstr "Endereço"
+
+msgid "Hostname or address of peer:"
+msgstr "Hostname ou endereço:"
+
+msgid ""
+"You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode."
+msgstr ""
+"Você deve especificar um endereço de uma máquina para jogar no modo online."
+
+msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile"
+msgstr "(^C) Sair     (<-/->/Home/End) Mover seta     (Enter) Jogar a peça"
+
+msgid "Do you really want to quit?"
+msgstr "Você realmente deseja sair?"
+
+msgid "No"
+msgstr "Não"
+
+msgid "Yes"
+msgstr "Sim"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "OK"
+msgstr "OK"

@@ -1,9 +1,14 @@
 #include <string.h>
 #include <curses.h>
 
+#include <libintl.h>
+
 #include "chars.h"
 #include "game.h"
+#include "util.h"
 #include "game/common.h"
+
+#define _(x) gettext(x)
 
 int col_is_not_full(struct game *game, int column)
 {
@@ -28,7 +33,7 @@ void print_arrow(WINDOW *win, int ind)
 
 void print_hud(struct game *game)
 {
-    static const char *hud_msg = "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile";
+    const char *hud_msg = _("(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile");
 
     wmove(stdscr, LINES - 1, 1);
 
@@ -48,7 +53,7 @@ void print_hud(struct game *game)
 
     waddch(stdscr, game->cur_player == PLAYER_YLW ? ']' : ' ' | COLOR_PAIR(0));
 
-    mvwaddstr(stdscr, LINES - 1, COLS - strlen(hud_msg) - 1, hud_msg);
+    mvwaddstr(stdscr, LINES - 1, COLS - utf8len(hud_msg) - 1, hud_msg);
 
     wnoutrefresh(stdscr);
 } 
