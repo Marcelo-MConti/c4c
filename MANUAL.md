@@ -19,8 +19,12 @@ As seguintes dependências são necessárias para compilar o jogo:
 Para compilar o jogo, basta rodar `make` ou `make all`. As variáveis
 `CFLAGS`, `CPPFLAGS`, `LDLIBS`, `BUILD`, `PREFIX` e `DESTDIR` são
 suportadas (embora não seja necessário especificá-las, geralmente),
-e têm o significado usual. Após compilar, o jogo pode ser rodado
-diretamente:
+e têm o significado usual. Além das variáveis usuais, `ASCII` e `NOCOLOR`
+podem ser usadas para forçar o jogo a usar apenas caracteres ASCII para
+renderizar elementos visuais (em vez de Unicode) e desativar cores,
+respectivamente, ex. `make ASCII=1 NOCOLOR=1`.
+
+Após compilar, o jogo pode ser rodado diretamente:
 
 ```
 $ ./c4c
