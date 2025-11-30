@@ -48,19 +48,19 @@ bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WIN
         
         switch (ch) {
             case KEY_LEFT:
-                if (selected == -1 || selected == 0)
+                if (selected == 0)
                     break;
 
-                selected--;
+                selected = (selected + MAX_LABELS - 1) % MAX_LABELS;
                 break;
             case KEY_RIGHT:
-                if (selected == -1 || selected == MAX_LABELS - 1)
+                if (selected == MAX_LABELS - 1)
                     break;
 
                 selected++;
                 break;
             case '\t':
-                selected = (selected + 1) % 2;
+                selected = (selected + MAX_LABELS - 1) % MAX_LABELS;
                 break;
             case '\n':
             case KEY_ENTER:
