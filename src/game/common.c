@@ -51,9 +51,11 @@ void print_arrow(WINDOW *win, int ind)
  
   Esta função desenha a interface informativa que inclui:
  *  - Indicação visual do jogador atual, destacando a peça correspondente
- *    (vermelha ou amarela) com colchetes ao redor.
- *  - Ícones das peças usando suas cores configuradas via curses.
- *  - A mensagem de instruções (mover seta, jogar, sair) alinhada à direita.
+ *    com colchetes ao redor.
+ *  - Ícones das peças usando suas cores configuradas.
+ *  - A mensagem de instruções alinhada à direita.
+  Parâmetros:
+    *game:    Estrutura principal que representa o estado do jogo.  
  */
 void print_hud(struct game *game)
 {
