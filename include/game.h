@@ -41,6 +41,7 @@ struct game_params {
     enum play_mode mode;
 };
 
+//Inicia e gerencia o fluxo completo de uma partida do jogo.
 void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
 
 #endif /* _GAME_H_ */

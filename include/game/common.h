@@ -55,8 +55,12 @@ struct position {
  */
 extern volatile bool player_wants_to_quit;
 
+// Verifica se uma coluna do tabuleiro ainda possui espaço disponível. Retorna
+// índice da linha disponível ou -1 caso a coluna esteja cheia.
 int col_is_not_full(struct game *game, int column);
+// Desenha uma seta indicando a coluna selecionada no topo do tabuleiro.
 void print_arrow(WINDOW *win, int idx);
+// Exibe o HUD (barra de informações) na parte inferior da tela.
 void print_hud(struct game *game);
 
 #endif /* _GAME_COMMON_H_ */
