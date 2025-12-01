@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
@@ -21,105 +20,8 @@ enum main_menu_entry {
     MM_ENTRY_START,
     MM_ENTRY_QUIT,
     MM_ENTRY_PLAYMODE,
-    MM_ENTRY_NETPLAY_HOST,
     MM_ENTRY_LAST
 };
-
-/**
- * Valida e faz parsing de uma string especificando um host e uma porta (`buf`).
- * O host pode ser um nome de domínio, um endereço IPv4 ou um endereço IPv6.
- *
- * Retorna `NULL` se a string for válida e uma mensagem de erro se houve um erro
- * de validação/parsing.
- *
- * Se `host` e `port` forem diferentes de `NULL`, guarda em `*host` e `*port` o
- * host e a porta lidos. `*host` é alocado dinamicamente e deve ser desalocado
- * por quem chamou.
- */
-static const char *validate_split_host_port(char *buf, char **host, uint16_t *port)
-{
-    const char *invalid_v6 = _("Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'.");
-    const char *invalid_host = _("Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain name or IPv4/6 address.");
-
-    char *colon = strchr(buf, ':');
-    char *v6end = NULL;
-    
-    // Assumir que é um endereço IPv6 se usar dois "dois pontos" ou colchetes
-    if (colon && strchr(colon + 1, ':')) {
-        colon = v6end = strchr(buf, '\0');
-    } else if (buf[0] == '[') {
-        v6end = strchr(buf, ']');
-        colon = v6end + 1;
-
-        if (*colon != ':') 
-            return invalid_v6;
-    } else {
-        for (char *s = buf; *s != ':' && *s != '\0'; s++) {
-            if (!isalnum(*s) && *s != '.' && *s != '-')
-                return invalid_host;
-        }
-    }
-
-    if (v6end) {
-        for (char *s = buf; s != v6end; s++) {
-            if (*s != ':' && !isdigit(*s) && tolower(*s) < 'a' && tolower(*s) > 'f')
-                return invalid_v6;
-        }
-    }
-
-    unsigned long parsed_port = 0;
-
-    if (!colon || *colon == '\0')
-        goto valid_host;
-
-    parsed_port = strtoul(colon + 1, NULL, 10);
-
-    if (parsed_port <= 1024 || parsed_port >= 65536)
-        goto valid_host;
-    else
-        return invalid_host;
-
-valid_host:
-    if (port)
-        *port = parsed_port ?: DEFAULT_PORT; 
-
-    if (host) {
-        char *host_start = &buf[0];
-        size_t host_len;
-        
-        if (v6end) {
-            if (*v6end == ']')
-                host_start++;
-
-            host_len = v6end - host_start;
-        } else {
-            host_len = colon - buf;
-        }
-
-        *host = malloc(host_len + 1);
-        memcpy(*host, buf, host_len);
-
-        (*host)[host_len] = '\0';
-    }
-
-    return NULL;
-}
-
-/**
- * Usada como callback para validar o campo de entrada `HOST` no menu.
- * vd. `validate_split_host`.
- */ 
-const char *menu_validate_host(char *buf)
-{
-    return validate_split_host_port(buf, NULL, NULL);
-}
-
-/** Verifica se a opção netplay está selecionada no menu. */ 
-static bool menu_condition_netplay(struct menu *menu)
-{
-    struct roul_ent *play_mode = &(*menu->entries)[MM_ENTRY_PLAYMODE]->roulette;
-    return play_mode->cur_option == PLAY_NET;
-}
 
 /**
  * Verifica se o terminal ainda tem o tamanho mínimo após ter
@@ -235,16 +137,8 @@ int main()
             (char *[]) {
                 [PLAY_LOCAL] = _("PL vs. PL"),
                 [PLAY_LOCAL_PC] = _("PL vs. PC"),
-                [PLAY_NET] = _("NETPLAY"),
                 [PLAY_LAST] = NULL
             }
-        }},
-        [MM_ENTRY_NETPLAY_HOST] = &(union entry_un) { .conditional = {
-            ENTRY_CONDITIONAL,
-            &(union entry_un) { .input = {
-                ENTRY_INPUT, 255, _("HOST"), (char [256]) {0}, _("Hostname or address of peer:"), menu_validate_host
-            }},
-            menu_condition_netplay
         }},
         [MM_ENTRY_LAST] = NULL
     };
@@ -287,9 +181,8 @@ int main()
 
         switch (entry) {
             case MM_ENTRY_START: {
-                // Obtém o modo de jogo e o host (usado se for netplay) do menu
+                // Obtém o modo de jogo do menu
                 enum play_mode mode = (*main_menu.entries)[MM_ENTRY_PLAYMODE]->roulette.cur_option;
-                char *host_str = (*main_menu.entries)[MM_ENTRY_NETPLAY_HOST]->conditional.entry->input.buf;
 
                 struct game_params params = {
                     .width = DEFAULT_WIDTH,
@@ -297,27 +190,7 @@ int main()
                     .mode = mode
                 };
 
-                if (mode == PLAY_NET && *host_str == '\0') {
-                    init_pair(1, COLOR_RED, COLOR_BLACK);
-
-                    const char *err = _("You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode.");
-
-                    wattrset(stdscr, COLOR_PAIR(1));
-                    mvwaddstr(stdscr, LINES - 2, (COLS - utf8len(err)) / 2, err);
-                    wattrset(stdscr, COLOR_PAIR(0));
-                    wgetch(stdscr);
-                    
-                    reset_color_pairs();
-
-                    continue;
-                }
-
-                
-                if (mode == PLAY_NET)
-                    validate_split_host_port(host_str, &params.host, &params.port);
-                
                 start_game(&params, on_redraw_game, NULL);
-                free(params.host);
 
                 break;
             }

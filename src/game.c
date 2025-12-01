@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <curses.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include <libintl.h>
 
@@ -9,7 +10,7 @@
 #include "game/common.h"
 
 #include "game/local.h"
-#include "game/remote.h"
+#include "game/ia.h"
 
 #include "chars.h"
 
@@ -33,8 +34,7 @@ static const struct position neighbour_pos[] = {
 
 static const char *end_messages[][2] = {
     [PLAY_LOCAL] = { N_("Red won!"), N_("Yellow won!") },
-    [PLAY_LOCAL_PC] = { N_("You won."), N_("The computer won.") },
-    [PLAY_NET] = { N_("You won."), N_("You lost.") }
+    [PLAY_LOCAL_PC] = { N_("You won."), N_("The computer won.") }
 };
 
 /**
@@ -252,15 +252,11 @@ void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ct
 
     print_board(game_win, &game);
 
-    uint8_t our_color;
     game.cur_player = PLAYER_RED;
 
-    if (params->mode == PLAY_NET) {
-        our_color = remote_init_play(params->host, params->port)
-                        ? PLAYER_RED
-                        : PLAYER_YLW; 
-    } else {
-        our_color = PLAYER_RED;
+    /* Se modo é vs IA, inicializa a thread da IA */
+    if (params->mode == PLAY_LOCAL_PC) {
+        ia_init(&game);
     }
 
     int n_turns = 0;// Contador de turnos
@@ -280,25 +276,27 @@ void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ct
             break;
         }
 
-        // Realiza a jogada local e retorna a posição escolhida
+        // Realiza a jogada e retorna a posição escolhida
         struct position pos;
 
-        switch (params->mode) {
-            case PLAY_LOCAL:
-            case PLAY_LOCAL_PC:
+        if (params->mode == PLAY_LOCAL) {
+            /* Modo local: ambos os jogadores são humanos */
+            pos = local_play(game_win, &game, on_redraw, ctx);
+        } else if (params->mode == PLAY_LOCAL_PC) {
+            /* Modo vs IA */
+            if (game.cur_player == PLAYER_RED) {
+                /* Jogador humano (vermelho) faz sua jogada */
                 pos = local_play(game_win, &game, on_redraw, ctx);
-                break;
-            case PLAY_NET:
-                if (game.cur_player == our_color) {
-                    pos = local_play(game_win, &game, on_redraw, ctx);
-
-                    remote_send_move(pos.x);
-                } else {
-                    pos.x = remote_get_move();
-                    pos.y = col_is_not_full(&game, pos.x);
+            } else {
+                /* IA (amarela) faz sua jogada usando a thread */
+                int col;
+                /* Aguarda até que a IA tenha um movimento pronto */
+                while ((col = ia_get_move()) == -1) {
+                    usleep(50000);  /* Dorme 50ms para não consumir CPU */
                 }
-
-                break;
+                pos.x = col;
+                pos.y = col_is_not_full(&game, pos.x);
+            }
         }
 
         // Atualiza o tabuleiro com a peça do jogador atual
@@ -335,6 +333,11 @@ void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ct
     }
 
     delwin(game_win); // Remove janela do jogo
+
+    /* Se foi modo vs IA, encerra a thread da IA */
+    if (params->mode == PLAY_LOCAL_PC) {
+        ia_end();
+    }
 
      // Liberação de memoria alocada
     free(game.board);
