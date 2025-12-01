@@ -42,21 +42,23 @@ struct net_thread_args {
     int sock_fd;
 };
 
-// meu mutex global
-static pthread_mutex_t net_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+// struct net_state para guardar as variaveis globais
+struct net_state {
+    pthread_mutex_t mutex;    // protege toda a região crítica
+    int32_t col;        // -1 = nenhum movimento
+    bool remote;     // true quando last_move é válido
+    bool net_alive;           // thread ainda está executando
+    bool need_rehandshake;    // sinaliza para refazer handshake
+};
 
-// variavel global que guarda meu ultimo movimento
-// inicializada com "-1"
-static int32_t col = -1;
-
-// variavel global, que guarde se na região critica tem uma jogada remota
-static bool remote = false;
-
-// flag que informa que a thread ainda está viva
-static bool net_alive = true;
-
-// falg que informa a necessidad de fazer novamente o hanshake
-static bool need_rehandshake = false;
+// inicialização da struct global
+static struct net_state NET = {
+    .mutex = PTHREAD_MUTEX_INITIALIZER,
+    .col = -1,
+    .remote = false,
+    .net_alive = false,
+    .need_rehandshake = false
+};
 
 // função auxiliar para enviar um ACK (adotando que o socket que já foi conectado)
 static void send_ACK(int sock_fd, uint32_t ref_seq)
@@ -192,7 +194,6 @@ struct net_msg hanshake(const char *addr, int port)
         return msg;
     }
   
-  
     return msg;
 }
 
@@ -201,21 +202,21 @@ struct net_msg hanshake(const char *addr, int port)
 int remote_get_move(void)
 {
     // entro na região critica
-    pthread_mutex_lock(&net_state_mutex);
+    pthread_mutex_lock(&NET.mutex);
     int resp = -1;
 
     // verifico se tem uma jogada valida para ser consumida
-    if(col >= 0 && remote == true){
+    if(NET.col >= 0 && NET.remote == true){
         // guardo a resposta
-        resp = col;
+        resp = NET.col;
 
         // consumir
-        col = -1;
-        remote = false;
+        NET.col = -1;
+        NET.remote = false;
     }
 
     // saio da região critica
-    pthread_mutex_lock(&net_state_mutex);
+    pthread_mutex_lock(&NET.mutex);
 
     // retorno a resposta
     return resp;
@@ -225,9 +226,9 @@ int remote_get_move(void)
 bool remote_reinit_play()
 {
     if(!thread_running) return false;
-    pthread_mutex_lock(&net_state_mutex);
-    need_rehandshake = true; // indica a necessidade de um novo hanshake
-    pthread_mutex_unlock(&net_state_mutex);
+    pthread_mutex_lock(&NET.mutex);
+    NET.need_rehandshake = true; // indica a necessidade de um novo hanshake
+    pthread_mutex_unlock(&NET.mutex);
 
     return true;
 }
@@ -239,9 +240,9 @@ void remote_end(void)
         return;
 
     // sinalizar para a thread parar
-    pthread_mutex_lock(&net_state_mutex);
-    net_alive = false;
-    pthread_mutex_unlock(&net_state_mutex);
+    pthread_mutex_lock(&NET.mutex);
+    NET.net_alive = false;
+    pthread_mutex_unlock(&NET.mutex);
 
     // aguardar thread terminar
     pthread_join(net_thread, NULL);
