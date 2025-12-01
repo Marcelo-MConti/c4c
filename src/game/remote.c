@@ -223,6 +223,6 @@ bool remote_reinit_play()
 }
 
 // matar a thread
-bool remote_end(){
+void remote_end(void){
 
 }
