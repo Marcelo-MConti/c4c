@@ -52,6 +52,12 @@ static int32_t col = -1;
 // variavel global, que guarde se na região critica tem uma jogada remota
 static bool remote = false;
 
+// flag que informa que a thread ainda está viva
+static bool net_alive = true;
+
+// falg que informa a necessidad de fazer novamente o hanshake
+static bool need_rehandshake = false;
+
 // função auxiliar para enviar um ACK (adotando que o socket que já foi conectado)
 static void send_ACK(int sock_fd, uint32_t ref_seq)
 {
@@ -218,10 +224,28 @@ int remote_get_move(void)
 // reenviar o handshake e permitir jogar novamente
 bool remote_reinit_play()
 {
+    if(!thread_running) return false;
+    pthread_mutex_lock(&net_state_mutex);
+    need_rehandshake = true; // indica a necessidade de um novo hanshake
+    pthread_mutex_unlock(&net_state_mutex);
 
+    return true;
 }
 
 // matar a thread
-void remote_end(void){
+void remote_end(void)
+{
+    if (!thread_running)
+        return;
 
+    // sinalizar para a thread parar
+    pthread_mutex_lock(&net_state_mutex);
+    net_alive = false;
+    pthread_mutex_unlock(&net_state_mutex);
+
+    // aguardar thread terminar
+    pthread_join(net_thread, NULL);
+
+    thread_running = false;
+    return;
 }
