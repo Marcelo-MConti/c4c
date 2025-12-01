@@ -133,27 +133,45 @@ static int draw_menu(struct menu *menu)
 /** Retorna o índice da próxima/última entrada visível no menu */
 static int seek_to_entry(struct menu *menu, int whence)
 {
+     // inc é o índice que iremos pesquisar. Começamos a partir da entrada atual.
     int inc = menu->cur_entry;
 
     while (true) {
         union entry_un *ent;
 
+        // Caso o usuário tente ir para PREVIOUS estando no primeiro índice,
+        // ele retorna 0 pois não faz sentido voltar
         if (whence == PREVIOUS && inc == 0)
             return 0;
 
+        // Ajusta o indice de acordo com a orientação da navegação 
         ent = (*menu->entries)[whence == PREVIOUS ? --inc : ++inc];
 
+        // Caso a gente chegue no final da lista e tentamos ir mais do que tem
+        // Retornamos a ultima posição valida
         if (whence == NEXT && !ent)
             return menu->cur_entry;
 
+        // Caso seja uma entrada condicional com a condição não satisfeita
         if (ent->common.type == ENTRY_CONDITIONAL && !ent->conditional.condition(menu))
             continue;
 
-        return inc;
+        return inc;  // retorna o indice validado e visivel
     }
 }
 
-/** Desenha a barra de entrada */
+/*
+* Desenha a barra de entrada de texto
+* Parâmetros:
+ *   win      - Ponteiro para a WINDOW ncurses
+ *   x, y     - Coordenadas onde o campo de input começa.
+ *   width    - Largura total visível
+ *   input    - Ponteiro para a estrutura in_ent contendo o buffer de texto digitado.
+ *   str_idx  - Índice absoluto no buffer indicando o final da parte visível do texto.
+ *   curs_pos - Posição do cursor dentro da parte visível.
+ *   len      - Comprimento total atual do texto no buffer.
+ *
+ */
 static void draw_input(WINDOW *win, int x, int y, int width,
         struct in_ent *input, int str_idx, int curs_pos, int len)
 {
@@ -330,6 +348,11 @@ static void get_input(struct in_ent *input, void (*on_redraw)(WINDOW *, void *),
  A função show_menu exibe e controla a navegação de um menu interativo usando ncurses, lidando com entrada do usuário
  para mover a seleção ou ativar itens. Ela redesenha o menu conforme necessário e retorna o índice da entrada selecionada
  ou -1 em caso de erro.
+
+ Parâmetros:
+ *   - menu: ponteiro para uma estrutura struct menu
+ *   - on_redraw: função callback chamada quando o menu precisa ser redesenhado
+ *   - ctx: ponteiro genérico (void*) usado como contexto para a função de redraw, 
  */
 int show_menu(struct menu *menu, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {

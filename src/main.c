@@ -40,6 +40,7 @@ void enforce_min_terminal_size() {
     }
 }
 
+// Contexto para reescrita
 struct redraw_menu_ctx {
     WINDOW *logo_win;
     int win_width;
@@ -48,14 +49,18 @@ struct redraw_menu_ctx {
 
 /**
  * Função de callback chamada ao redesenhar o menu,
- * mantendo-o centralizado.
+ * mantendo centralizado.
+ *Parâmetros:
+ *  menu_win:   janela do menu
+    ctx:        Contexto para redesenho
  */ 
 static void on_redraw_menu(WINDOW *menu_win, void *ctx)
 {
-    enforce_min_terminal_size();
+    enforce_min_terminal_size();// Valida tamanho minimo terminal
 
-    struct redraw_menu_ctx *redraw = ctx;
+    struct redraw_menu_ctx *redraw = ctx;// Contexto para redesenho
 
+    // Calcula um novo offset da janela para deixar centralizado
     int y_offset = (LINES - redraw->win_height) / 2;
     int x_offset = (COLS - redraw->win_width) / 2;
 
@@ -72,13 +77,16 @@ static void on_redraw_menu(WINDOW *menu_win, void *ctx)
 /**
  * Função de callback chamada ao redesenhar a tela do jogo,
  * mantendo-a centralizada.
+ * Parâmetros:
+    gama_win:   Janela do jogo
+    ctx:        contexto para redesenho     
  */
 static void on_redraw_game(WINDOW *game_win, void *ctx)
 {
-    enforce_min_terminal_size();
+    enforce_min_terminal_size();// Valida tamanho minimo terminal
 
     int width, height;
-    getmaxyx(game_win, height, width);
+    getmaxyx(game_win, height, width); // Pega o tamanho da tela
 
     int y_offset = (LINES - height) / 2;
     int x_offset = (COLS - width) / 2;
@@ -100,9 +108,11 @@ int main()
     textdomain("c4c");
     bindtextdomain("c4c", PREFIX "/share/locale");
 
+    // Inicializa ncurses
     initscr();
 
 #ifdef C4C_COLOR
+// Verifica suporte a cores
     if (!has_colors())
         errx(1, "%s", _("This terminal does not support colors, which is required for c4c to run.\n"
                   "Either find a terminal that supports colors or recompile c4c without color support."));
@@ -112,12 +122,13 @@ int main()
 
     cbreak();
     noecho();
-    curs_set(0);
+    curs_set(0);// esconde o cursor
 
-    enforce_min_terminal_size();
+    enforce_min_terminal_size(); // valida tamanho mínimo do terminal
 
     int max_logo_width = 0;
     
+    // Determina largura máxima da logo para centralizar
     for (size_t i = 0; i < ARR_SIZE(logo); i++) {
         int len = utf8len(logo[i]);
         if (len > max_logo_width)
@@ -143,6 +154,7 @@ int main()
         [MM_ENTRY_LAST] = NULL
     };
 
+    // Determina dimensões da janela do menu
     int win_height = ARR_SIZE(logo) + ARR_SIZE(main_menu_entries) - 1 + 5;
     int win_width = MAX(max_logo_width, 30);
 
@@ -159,6 +171,7 @@ int main()
         waddstr(logo_win, logo[i]);
     }
 
+    // Cria o menu
     WINDOW *menu_win = newwin(6, win_width, y_offset + ARR_SIZE(logo) + 1, x_offset);
     
     struct menu main_menu = {
@@ -173,12 +186,16 @@ int main()
         .win_width = win_width,
     };
 
+    // Loop do menu
     while (true) {
+        // Redesenha o menu na tela 
         on_redraw_menu(menu_win, &redraw_ctx);
         doupdate();
         
+        // Exibe o menu principal e aguarda o usuário escolher uma opção
         int entry = show_menu(&main_menu, on_redraw_menu, &redraw_ctx);
 
+        // Trata a entrada escolhida do menu pelo usuário
         switch (entry) {
             case MM_ENTRY_START: {
                 // Obtém o modo de jogo do menu
@@ -195,7 +212,7 @@ int main()
                 break;
             }
             case -1:
-            case MM_ENTRY_QUIT:
+            case MM_ENTRY_QUIT:  // Fecha o jogo
                 nocbreak();
                 echo();
                 curs_set(1);
