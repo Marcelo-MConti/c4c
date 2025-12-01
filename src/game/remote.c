@@ -41,9 +41,37 @@ struct net_thread_args {
     int sock_fd;
 };
 
+// função auxiliar para enviar um ACK (adotando que o socket que já foi conectado)
+static void send_ACK(int sock_fd, uint32_t ref_seq)
+{
+    // montar meu ack
+    struct net_msg ack = {
+        .seq_id = ref_seq,      // ecoar a sequencia recebida (confirmada)
+        .type = ACK,
+        .ack = {ref_seq}
+    };
+
+    // adotando que ja ocorreu a conexão com o socket
+    ssize_t s = send(sock_fd, &(ack), sizeof(ACK), 0);
+
+    if(s < 0){
+        print("deu ruim no ACK");
+        return;
+    }
+}
+
+
+// falta colocar o loop da thread na rede
 static void *event_loop(void *ctx)
 {
     struct net_thread_args *args = ctx;
+    if(!args) return NULL;
+
+    int sock_fd = args->sock_fd;
+    free(args);
+
+    struct net_msg msg;
+
 
     free(args);
     return NULL;
@@ -150,4 +178,22 @@ struct net_msg hanshake(const char *addr, int port)
   
   
     return msg;
+}
+
+// -1 : Não houve movimento ainda
+//  x : numero da coluna
+bool remote_get_move()
+{
+
+}
+
+// reenviar o handshake e permitir jogar novamente
+bool remote_reinit_play()
+{
+
+}
+
+// matar a thread
+bool remote_end(){
+
 }
