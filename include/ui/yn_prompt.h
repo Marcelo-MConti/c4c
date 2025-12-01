@@ -14,6 +14,10 @@ enum yn_prompt_label {
     YN_LABEL_OK_CANCEL,
 };
 
+/* 
+ Exibe uma janela de confirmação do tipo "Yes/No" ou "OK/Cancel" usando ncurses.
+ Retorna: 0 se escolheu 0 primerio ou 1 se escolheu o segundo rótulo
+*/ 
 bool show_yn_prompt(char *text, enum yn_prompt_label type, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
 
 #endif /* _UI_YN_PROMPT_ */
