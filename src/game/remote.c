@@ -15,6 +15,7 @@
 
 #include "game/remote.h"
 
+
 enum net_msg_type {
     HANDSHAKE,
     MOVE,
@@ -41,6 +42,16 @@ struct net_thread_args {
     int sock_fd;
 };
 
+// meu mutex global
+static pthread_mutex_t net_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// variavel global que guarda meu ultimo movimento
+// inicializada com "-1"
+static int32_t col = -1;
+
+// variavel global, que guarde se na região critica tem uma jogada remota
+static bool remote = false;
+
 // função auxiliar para enviar um ACK (adotando que o socket que já foi conectado)
 static void send_ACK(int sock_fd, uint32_t ref_seq)
 {
@@ -52,7 +63,7 @@ static void send_ACK(int sock_fd, uint32_t ref_seq)
     };
 
     // adotando que ja ocorreu a conexão com o socket
-    ssize_t s = send(sock_fd, &(ack), sizeof(ACK), 0);
+    ssize_t s = send(sock_fd, &(ack), sizeof(ack), 0);
 
     if(s < 0){
         print("deu ruim no ACK");
@@ -182,9 +193,27 @@ struct net_msg hanshake(const char *addr, int port)
 
 // -1 : Não houve movimento ainda
 //  x : numero da coluna
-bool remote_get_move()
+int remote_get_move(void)
 {
+    // entro na região critica
+    pthread_mutex_lock(&net_state_mutex);
+    int resp = -1;
 
+    // verifico se tem uma jogada valida para ser consumida
+    if(col >= 0 && remote == true){
+        // guardo a resposta
+        resp = col;
+
+        // consumir
+        col = -1;
+        remote = false;
+    }
+
+    // saio da região critica
+    pthread_mutex_lock(&net_state_mutex);
+
+    // retorno a resposta
+    return resp;
 }
 
 // reenviar o handshake e permitir jogar novamente
