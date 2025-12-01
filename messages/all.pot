@@ -77,9 +77,6 @@ msgid ""
 "You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode."
 msgstr ""
 
-msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile"
-msgstr ""
-
 msgid "Do you really want to quit?"
 msgstr ""
 
