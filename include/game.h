@@ -1,6 +1,7 @@
 #ifndef _GAME_H_
 #define _GAME_H_
 
+#include <netdb.h>
 #include <stdint.h>
 #include <curses.h>
 
@@ -24,8 +25,7 @@
   start_game():
     Função responsável por inicializar e gerenciar a execução de uma partida.
     Parâmetros:
- *     - width, height: Dimensões do tabuleiro.
- *     - play_mode: Modo de jogo selecionado.
+ *     - params: Parâmetros do jogo (dimensões do tabuleiro, hostname, etc.)
  *     - on_redraw: Callback chamado sempre que a interface deve ser redesenhada.
  *     - ctx: Contexto opcional passado para o callback.
  */
@@ -43,6 +43,14 @@ enum play_mode {
     PLAY_LAST
 };
 
-void start_game(int width, int height, enum play_mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
+struct game_params {
+    int width;
+    int height;
+    enum play_mode mode;
+    char *host;
+    uint16_t port;
+};
+
+void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
 
 #endif /* _GAME_H_ */

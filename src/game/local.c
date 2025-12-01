@@ -9,7 +9,7 @@
 #define _(x) gettext(x)
 
 
-struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
+struct position local_play(WINDOW *win, struct game *game, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     static struct position pos = {0};
     int idx = pos.x, ch, tmp;
@@ -81,7 +81,7 @@ struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WI
                     wmove(win, 0, 1);
                     wclrtoeol(win);
 
-                    return &pos;
+                    return pos;
                 } else {
                     // XXX: show error message
                 }

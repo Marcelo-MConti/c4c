@@ -289,9 +289,15 @@ int main()
             case MM_ENTRY_START: {
                 // Obtém o modo de jogo e o host (usado se for netplay) do menu
                 enum play_mode mode = (*main_menu.entries)[MM_ENTRY_PLAYMODE]->roulette.cur_option;
-                char *host = (*main_menu.entries)[MM_ENTRY_NETPLAY_HOST]->conditional.entry->input.buf;
+                char *host_str = (*main_menu.entries)[MM_ENTRY_NETPLAY_HOST]->conditional.entry->input.buf;
 
-                if (mode == PLAY_NET && *host == '\0') {
+                struct game_params params = {
+                    .width = DEFAULT_WIDTH,
+                    .height = DEFAULT_HEIGHT,
+                    .mode = mode
+                };
+
+                if (mode == PLAY_NET && *host_str == '\0') {
                     init_pair(1, COLOR_RED, COLOR_BLACK);
 
                     const char *err = _("You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode.");
@@ -305,8 +311,13 @@ int main()
 
                     continue;
                 }
+
                 
-                start_game(DEFAULT_WIDTH, DEFAULT_HEIGHT, mode, on_redraw_game, NULL);
+                if (mode == PLAY_NET)
+                    validate_split_host_port(host_str, &params.host, &params.port);
+                
+                start_game(&params, on_redraw_game, NULL);
+                free(params.host);
 
                 break;
             }

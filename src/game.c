@@ -6,8 +6,10 @@
 #include <libintl.h>
 
 #include "game.h"
-#include "game/local.h"
 #include "game/common.h"
+
+#include "game/local.h"
+#include "game/remote.h"
 
 #include "chars.h"
 
@@ -212,7 +214,7 @@ static void set_player_wants_to_quit(int signo)
  *   on_redraw - Ponteiro para função de redraw chamada em eventos de resize ou redraw.
  *   ctx       - Contexto passado para a função on_redraw.
  */
-void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
+void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
     // Armazena a ação anterior do sinal SIGINT para restaurar depois
     static struct sigaction old_act;
@@ -224,9 +226,9 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     // Aloca tabuleiro e matriz de blink e armazena na struct game
     struct game game = {
-        .width = width, .height = height,
-        .blink = calloc(1, sizeof(uint8_t[height][width])),
-        .board = calloc(1, sizeof(enum tile[height][width]))
+        .width = params->width, .height = params->height,
+        .blink = calloc(1, sizeof(uint8_t[params->height][params->width])),
+        .board = calloc(1, sizeof(enum tile[params->height][params->width]))
     };
 
     int win_width = game.width * 3 + 2;
@@ -250,21 +252,25 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     print_board(game_win, &game);
 
-    if (mode != PLAY_NET) {
-        game.cur_player = PLAYER_RED;
+    uint8_t our_color;
+    game.cur_player = PLAYER_RED;
+
+    if (params->mode == PLAY_NET) {
+        our_color = remote_init_play(params->host, params->port)
+                        ? PLAYER_RED
+                        : PLAYER_YLW; 
     } else {
-        // TODO: send handshake to determine if we will be yellow or red
+        our_color = PLAYER_RED;
     }
 
     int n_turns = 0;// Contador de turnos
     enum tile (*board)[game.width] = game.board;
 
-    // TODO: center messages?
     while (true) {
         print_hud(&game);
         refresh();
 
-        if (n_turns == width * height) {
+        if (n_turns == params->width * params->height) {
             print_board(game_win, &game);
             wrefresh(game_win);
 
@@ -275,22 +281,40 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
         }
 
         // Realiza a jogada local e retorna a posição escolhida
-        struct position *pos = local_play(game_win, &game, on_redraw, ctx);
+        struct position pos;
+
+        switch (params->mode) {
+            case PLAY_LOCAL:
+            case PLAY_LOCAL_PC:
+                pos = local_play(game_win, &game, on_redraw, ctx);
+                break;
+            case PLAY_NET:
+                if (game.cur_player == our_color) {
+                    pos = local_play(game_win, &game, on_redraw, ctx);
+
+                    remote_send_move(pos.x);
+                } else {
+                    pos.x = remote_get_move();
+                    pos.y = col_is_not_full(&game, pos.x);
+                }
+
+                break;
+        }
 
         // Atualiza o tabuleiro com a peça do jogador atual
-        board[pos->y][pos->x] = PLAYER_TO_CHECKER(game.cur_player);
+        board[pos.y][pos.x] = PLAYER_TO_CHECKER(game.cur_player);
 
         print_board(game_win, &game);
 
         // Verifica se a jogada atual causou vitória
-        uint8_t (*winning_axes)[4] = check_win(&game, pos);
+        uint8_t (*winning_axes)[4] = check_win(&game, &pos);
 
         if (winning_axes) {
             for (int i = 0; i < 4; i++) {
                 if ((*winning_axes)[i] >= 3) {
                     // Marca as peças vencedoras na direção do eixo
-                    mark_winning_tiles(game_win, &game, pos, i);
-                    mark_winning_tiles(game_win, &game, pos, i + 4);
+                    mark_winning_tiles(game_win, &game, &pos, i);
+                    mark_winning_tiles(game_win, &game, &pos, i + 4);
                 }
             }
 
@@ -300,7 +324,7 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
             y_offset = (LINES - 3) / 2 - 10;
             x_offset = (COLS - 20) / 2;
 
-            mvwaddstr(stdscr, LINES - 3, 1, _(end_messages[mode][game.cur_player]));
+            mvwaddstr(stdscr, LINES - 3, 1, _(end_messages[params->mode][game.cur_player]));
             wgetch(stdscr);
 
             break;

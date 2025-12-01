@@ -5,6 +5,6 @@
 
 #include "game/common.h"
 
-struct position *local_play(WINDOW *win, struct game *game, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
+struct position local_play(WINDOW *win, struct game *game, void (*on_redraw)(WINDOW *, void *ctx), void *ctx);
 
 #endif /* _GAME_LOCAL_H_ */

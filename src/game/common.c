@@ -14,7 +14,7 @@
     game   - Ponteiro para a estrutura do jogo contendo o tabuleiro.
     column - Índice da coluna a ser verificada.
   
- Retorno: 0 caso índice da linha disponível ou -1 caso a coluna esteja cheia.
+ Retorno: índice da linha disponível ou -1 caso a coluna esteja cheia.
  */
 int col_is_not_full(struct game *game, int column)
 {
