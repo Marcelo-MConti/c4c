@@ -66,7 +66,6 @@ static void send_ACK(int sock_fd, uint32_t ref_seq)
     ssize_t s = send(sock_fd, &(ack), sizeof(ack), 0);
 
     if(s < 0){
-        print("deu ruim no ACK");
         return;
     }
 }
