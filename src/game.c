@@ -35,7 +35,16 @@ static const char *end_messages[][2] = {
     [PLAY_NET] = { N_("You won."), N_("You lost.") }
 };
 
+/**
+  Verifica se uma posição no tabuleiro é válida e contém uma peça.
 
+  Parâmetros:
+    - game: Ponteiro para o estado atual do jogo (contém o tabuleiro e dimensões).
+    - pos:  Posição a ser verificada (coordenadas x e y).
+  Retorno:
+    - true:  se a posição está dentro dos limites e contém uma peça.
+    - false: caso contrário (fora do tabuleiro ou posição vazia).
+ */
 static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos)
 {
     if ((pos->x < 0 || pos->y < 0) || (pos->x >= game->width || pos->y >= game->height))
@@ -45,56 +54,86 @@ static inline bool is_valid_nonempty_pos(struct game *game, struct position *pos
     return board[pos->y][pos->x] != TILE_NONE;
 }
 
+/**
+  Verifica se a última jogada gerou uma condição de vitória.
+ 
+  A função analisa a peça recém-colocada em `pos` e verifica, para cada uma das
+  quatro direções principais (horizontal, vertical e as duas diagonais), quantas
+  peças iguais existem consecutivamente a partir dela.
+ 
+  Retorno: Ponteiro para um array estático `uint8_t[4]` contendo as quantidades
+ *         de peças iguais em cada eixo (horizontal, vertical e diagonais),
+ *         caso exista alguma direção vencedora; ou NULL caso não haja vitória.
+ */
+
 static uint8_t (*check_win(struct game *game, struct position *pos))[4]
 {
+    // Ponteiro para o tabuleiro do jogo
     enum tile (*board)[game->width] = game->board;
 
+    // Se a posição ainda estiver vazia, não há vitória possível
     if (board[pos->y][pos->x] == TILE_NONE)
         return NULL;
 
+    // Array estático para contar peças iguais em cada uma das 4 direções principais
     static uint8_t same_neighbours[4];
     memset(same_neighbours, 0, sizeof same_neighbours);
 
+    // Itera pelas direções
     for (int i = 0; i < 8; i++) {
         struct position chk_pos = { pos->x, pos->y };
 
-        for (int j = 0; j < 4; j++) {
+        // Verifica até 3 casas à frente na direção atual
+        for (int j = 0; j < 4; j++) { 
             chk_pos.x += neighbour_pos[i].x;
             chk_pos.y += neighbour_pos[i].y;
 
+             // Se a posição for válida e tiver a mesma peça, incrementa contador
             if (is_valid_nonempty_pos(game, &chk_pos) &&
                     board[pos->y][pos->x] == board[chk_pos.y][chk_pos.x])
                 same_neighbours[i % 4]++;
             else
-                break;
+                break;// interrompe se encontrar peça diferente ou posição inválida
         }
     }
 
     for (int i = 0; i < 4; i++) {
         if (same_neighbours[i] >= 3)
-            return &same_neighbours;
+            return &same_neighbours;// retorna array com contagens
     }
 
-    return NULL;
+    return NULL; // Caso não haja vitória retorna NULL
 }
 
+/**
+  Desenha o tabuleiro do jogo na janela fornecida.
+  Mostra as peças de cada posição com cores, aplica efeito de piscar
+  nas peças destacadas e desenha os separadores entre as casas.
+  
+  Parâmetros:
+ *  -win  A janela ncurses onde o tabuleiro será desenhado.
+ *  -game Estrutura do jogo contendo o tabuleiro, dimensões e efeitos de blink.
+ */
 static void print_board(WINDOW *win, struct game *game)
 {
     int curx, cury;
     int winx, winy;
 
-    getmaxyx(win, winy, winx);
+    getmaxyx(win, winy, winx);// Obtém o tamanho da janela e salva em winy e winx
     wmove(win, winy - 2, 1);
 
-    enum tile (*board)[game->width] = game->board;
-    uint8_t (*blink)[game->width] = game->blink;
+    enum tile (*board)[game->width] = game->board;// Aponta para o tabuleiro do jogo
+    uint8_t (*blink)[game->width] = game->blink; // Aponta para a matriz de "piscar" das peças ao ganhar
 
+    // Loops pelas linhas e colunas do tabuleiro 
     for (int i = 0; i <game->height; i++) {
         for (int j = 0; j < game->width; j++) {
+            // Aplica cor da peça e efeito de piscar se necessário
             wattrset(win, COLOR_PAIR(board[i][j]) | A_BLINK * blink[i][j]);
-            waddstr(win, checkers[board[i][j]]);
+            waddstr(win, checkers[board[i][j]]);// Desenha a peça
             wattrset(win, COLOR_PAIR(0) | A_NORMAL);
 
+            // Adiciona espaçamento entre as peças (exceto na última coluna)
             if (j <= game->height - 1)
                 waddstr(win, "  ");
         }
@@ -106,9 +145,9 @@ static void print_board(WINDOW *win, struct game *game)
 
             for (int j = 0; j < game->width - 1; j++) {
 #ifdef C4C_COLOR
-                waddch(win, '+');
+                waddch(win, '+'); // Desenha '+' como separador se cores habilitadas
 #else
-                waddch(win, '.');
+                waddch(win, '.'); // Desenha '.' como separador se cores não habilitadas
 #endif
                 getyx(win, cury, curx);
                 wmove(win, cury, curx + 2);
@@ -119,6 +158,19 @@ static void print_board(WINDOW *win, struct game *game)
     }
 }
 
+/**
+  Destaca as peças vencedoras no tabuleiro, marcando-as para piscar.
+ 
+  Percorre a linha de peças a partir da posição fornecida (pos) 
+  na direção do eixo vencedor (winning_axis) e ativa o efeito de 
+  piscar para cada peça da mesma cor.
+ 
+  Parâmetros:
+ *   win          - Janela do curses onde o tabuleiro é desenhado.
+ *   game         - Estrutura do jogo contendo o tabuleiro e o estado de piscar.
+ *   pos          - Posição inicial da peça vencedora.
+ *   winning_axis - Índice da direção vencedora no array `neighbour_pos`.
+ */
 static void mark_winning_tiles(WINDOW *win, struct game *game, struct position *pos, int winning_axis)
 {
     enum tile (*board)[game->width] = game->board;
@@ -146,14 +198,31 @@ static void set_player_wants_to_quit(int signo)
     player_wants_to_quit = true;
 }
 
+/**
+  Inicia e gerencia o fluxo completo de uma partida do jogo.
+ 
+  Esta função configura o tabuleiro, inicializa a interface gráfica, 
+  gerencia o loop de jogadas, verifica vitórias ou empate,
+  atualiza a exibição do tabuleiro e finaliza o jogo.
+ 
+  Parâmetros:
+ *   width     - Largura do tabuleiro.
+ *   height    - Altura do tabuleiro.
+ *   mode      - Modo de jogo (local, contra PC ou rede).
+ *   on_redraw - Ponteiro para função de redraw chamada em eventos de resize ou redraw.
+ *   ctx       - Contexto passado para a função on_redraw.
+ */
 void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WINDOW *, void *ctx), void *ctx)
 {
+    // Armazena a ação anterior do sinal SIGINT para restaurar depois
     static struct sigaction old_act;
+    // Configura um handler para SIGINT para permitir que o jogador saia do jo
     sigaction(SIGINT, &(struct sigaction) { .sa_handler = set_player_wants_to_quit }, &old_act);
 
     redrawwin(stdscr);
     wrefresh(stdscr);
 
+    // Aloca tabuleiro e matriz de blink e armazena na struct game
     struct game game = {
         .width = width, .height = height,
         .blink = calloc(1, sizeof(uint8_t[height][width])),
@@ -165,10 +234,12 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
 
     int x_offset = (COLS - win_width) / 2;
     int y_offset = (LINES - win_height) / 2;
-
+    
+     // Cria a janela do jogo com as dimensões e posição calculadas
     WINDOW *game_win = newwin(win_height, win_width, y_offset, x_offset);
     keypad(game_win, TRUE);
 
+    // Inicializa cores para as peças vermelhas e amarelas
     init_pair(TILE_RED_CHECKER, COLOR_RED, COLOR_BLACK);
     init_pair(TILE_YLW_CHECKER, COLOR_YELLOW, COLOR_BLACK);
 
@@ -185,7 +256,7 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
         // TODO: send handshake to determine if we will be yellow or red
     }
 
-    int n_turns = 0;
+    int n_turns = 0;// Contador de turnos
     enum tile (*board)[game.width] = game.board;
 
     // TODO: center messages?
@@ -197,23 +268,27 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
             print_board(game_win, &game);
             wrefresh(game_win);
 
-            mvwaddstr(stdscr, LINES - 3, 1, _("Tie!"));
+            mvwaddstr(stdscr, LINES - 3, 1, _("Tie!"));// Exibe mensagem de empate
             wgetch(stdscr);
 
             break;
         }
 
+        // Realiza a jogada local e retorna a posição escolhida
         struct position *pos = local_play(game_win, &game, on_redraw, ctx);
 
+        // Atualiza o tabuleiro com a peça do jogador atual
         board[pos->y][pos->x] = PLAYER_TO_CHECKER(game.cur_player);
 
         print_board(game_win, &game);
 
+        // Verifica se a jogada atual causou vitória
         uint8_t (*winning_axes)[4] = check_win(&game, pos);
 
         if (winning_axes) {
             for (int i = 0; i < 4; i++) {
                 if ((*winning_axes)[i] >= 3) {
+                    // Marca as peças vencedoras na direção do eixo
                     mark_winning_tiles(game_win, &game, pos, i);
                     mark_winning_tiles(game_win, &game, pos, i + 4);
                 }
@@ -231,15 +306,17 @@ void start_game(int width, int height, enum play_mode mode, void (*on_redraw)(WI
             break;
         }
 
-        n_turns++;
-        game.cur_player = !game.cur_player;
+        n_turns++;// Incrementa contador de turnos
+        game.cur_player = !game.cur_player; // Alterna jogador
     }
 
-    delwin(game_win);
+    delwin(game_win); // Remove janela do jogo
 
+     // Liberação de memoria alocada
     free(game.board);
     free(game.blink);
     
+     // Restaura configuração original
     sigaction(SIGINT, &old_act, NULL);
     player_wants_to_quit = false;
 }

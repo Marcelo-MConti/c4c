@@ -8,6 +8,14 @@
 
 #define _(x) gettext(x)
 
+/**
+ Verifica se uma coluna do tabuleiro ainda possui espaço disponível.
+ Parâmetros:
+    game   - Ponteiro para a estrutura do jogo contendo o tabuleiro.
+    column - Índice da coluna a ser verificada.
+  
+ Retorno: 0 caso índice da linha disponível ou -1 caso a coluna esteja cheia.
+ */
 int col_is_not_full(struct game *game, int column)
 {
     enum tile (*board)[game->width] = game->board;
@@ -20,6 +28,15 @@ int col_is_not_full(struct game *game, int column)
     return -1;
 }
 
+/**
+  Desenha uma seta indicando a coluna selecionada no topo do tabuleiro.
+ 
+ Parâmetros:
+ win    -Janela curses onde a seta será desenhada.
+ ind    -Índice da coluna atualmente selecionada.
+ */
+
+
 void print_arrow(WINDOW *win, int ind)
 {
     int curx, cury;
@@ -29,6 +46,15 @@ void print_arrow(WINDOW *win, int ind)
     mvwaddstr(win, cury, ind * 3 + 1, arrow);
 }
 
+/**
+ Exibe o HUD (barra de informações) na parte inferior da tela.
+ 
+  Esta função desenha a interface informativa que inclui:
+ *  - Indicação visual do jogador atual, destacando a peça correspondente
+ *    (vermelha ou amarela) com colchetes ao redor.
+ *  - Ícones das peças usando suas cores configuradas via curses.
+ *  - A mensagem de instruções (mover seta, jogar, sair) alinhada à direita.
+ */
 void print_hud(struct game *game)
 {
     const char *hud_msg = _("(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play");
