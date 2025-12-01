@@ -53,3 +53,4 @@ Run:
 
  - `sudo ip netns exec $NS0 ./c4c` (use $NS1_ADDR as the peer address)
  - `sudo ip netns exec $NS1 ./c4c` (use $NS0_ADDR as the peer address)
+EOF
