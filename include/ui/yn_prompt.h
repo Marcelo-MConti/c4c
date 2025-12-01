@@ -3,6 +3,12 @@
 
 #include <curses.h>
 
+/*
+ Enumeração que define os tipos de rótulos do prompt.
+ 
+   YN_LABEL_YES_NO   → exibe botões "Yes" e "No".
+   YN_LABEL_OK_CANCEL → exibe botões "OK" e "Cancel".
+ */
 enum yn_prompt_label {
     YN_LABEL_YES_NO,
     YN_LABEL_OK_CANCEL,
