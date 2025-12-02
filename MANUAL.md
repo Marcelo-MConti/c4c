@@ -83,14 +83,19 @@ Após compilar, o jogo pode ser rodado diretamente:
 $ ./c4c
 ```
 
+```
+$ LANGUAGE=pt c4c  
+```
 É possível instalar o jogo (por padrão em `/usr/local`, pode ser
 alterado usando `PREFIX` e `DESTDIR`), rodando `make install`.
 Após instalar o jogo, a variável de ambiente `LANGUAGE` pode ser
 usada para que a interface de usuário seja traduzida para português:
 
-```
-$ LANGUAGE=pt c4c  
-```
+## 🚦 Sobre o uso de Threads e semáforos
+O jogo foi desenvolvido tendo em vistas o trabalho proposto pela disciplina SSC0140 - Sistemas Operacionais I. 
+Dessa forma, foi necessário implementar o uso de threads e semáforos em parte do código para poder trabalhar
+os conceitos teóricos visto durante a disciplina. A utilização desses conceitos está especificada em :
+[Ver Documento](docs/THREAD_SAFETY.md)
 
 > [!NOTE]
 >
