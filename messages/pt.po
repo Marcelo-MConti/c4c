@@ -32,16 +32,6 @@ msgstr "O PC ganhou."
 msgid "You lost."
 msgstr "Você perdeu."
 
-msgid "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'."
-msgstr "Endereço IPv6 inválido! Use `[ENDEREÇO]:[PORTA]' ou apenas `ENDEREÇO'."
-
-msgid ""
-"Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain "
-"name or IPv4/6 address."
-msgstr ""
-"Host inválido! Esperado `HOST:PORTA' ou só `HOST' (um nome de domínio ou "
-"endereço IPv4/6)."
-
 #, c-format
 msgid "c4c needs at least a %dx%d terminal to work."
 msgstr ""
@@ -71,20 +61,6 @@ msgstr "PvP local"
 msgid "PL vs. PC"
 msgstr "vs. PC"
 
-msgid "NETPLAY"
-msgstr "PvP online"
-
-msgid "HOST"
-msgstr "Endereço"
-
-msgid "Hostname or address of peer:"
-msgstr "Hostname ou endereço:"
-
-msgid ""
-"You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode."
-msgstr ""
-"Você deve especificar um endereço de uma máquina para jogar no modo online."
-
 msgid "Do you really want to quit?"
 msgstr "Você realmente deseja sair?"
 
@@ -105,7 +81,3 @@ msgstr "Empate!"
 
 msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play"
 msgstr "(^C) Sair     (<-/->/Home/End) Mover seta     (Enter) Fazer jogada"
-
-#, fuzzy
-#~ msgid "(^C) Quit     (<-/->/Home/End) Move arrow     (Enter) Play tile"
-#~ msgstr "(^C) Sair     (<-/->/Home/End) Mover seta     (Enter) Fazer jogada"

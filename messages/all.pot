@@ -31,14 +31,6 @@ msgstr ""
 msgid "You lost."
 msgstr ""
 
-msgid "Invalid IPv6 address! Expected `[ADDR]:PORT' or just `ADDR'."
-msgstr ""
-
-msgid ""
-"Invalid host! `HOST:PORT' or just `HOST' expected. `HOST' can be a domain "
-"name or IPv4/6 address."
-msgstr ""
-
 #, c-format
 msgid "c4c needs at least a %dx%d terminal to work."
 msgstr ""
@@ -62,19 +54,6 @@ msgid "PL vs. PL"
 msgstr ""
 
 msgid "PL vs. PC"
-msgstr ""
-
-msgid "NETPLAY"
-msgstr ""
-
-msgid "HOST"
-msgstr ""
-
-msgid "Hostname or address of peer:"
-msgstr ""
-
-msgid ""
-"You need to specify a peer (`HOST:PORT' or just `HOST') in netplay mode."
 msgstr ""
 
 msgid "Do you really want to quit?"
