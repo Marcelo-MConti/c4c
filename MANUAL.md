@@ -13,8 +13,6 @@ Ao abrir, o jogo exibirá o menu principal, onde você poderá escolher entre:
 
 **PL VS PC** – um jogador contra o computador
 
-**NET PLAY** – Conecta-se com um jogador em outro computador por meio do IP do computador de ambos.
-
 Ao escolher a opção do jogo basta apertar start para iniciar.
 
 ### 🕹️ Lógica do Jogo
