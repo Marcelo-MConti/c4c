@@ -126,6 +126,7 @@ int main()
 
     enforce_min_terminal_size(); // valida tamanho mínimo do terminal
 
+    // número de caracteres UTF8 da maior linha da Logo
     int max_logo_width = 0;
     
     // Determina largura máxima da logo para centralizar

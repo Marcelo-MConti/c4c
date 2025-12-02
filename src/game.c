@@ -128,7 +128,7 @@ static void print_board(WINDOW *win, struct game *game)
     uint8_t (*blink)[game->width] = game->blink; // Aponta para a matriz de "piscar" das peças ao ganhar
 
     // Loops pelas linhas e colunas do tabuleiro 
-    for (int i = 0; i <game->height; i++) {
+    for (int i = 0; i < game->height; i++) {
         for (int j = 0; j < game->width; j++) {
             // Aplica cor da peça e efeito de piscar se necessário
             wattrset(win, COLOR_PAIR(board[i][j]) | A_BLINK * blink[i][j]);
@@ -218,7 +218,7 @@ void start_game(struct game_params *params, void (*on_redraw)(WINDOW *, void *ct
 {
     // Armazena a ação anterior do sinal SIGINT para restaurar depois
     static struct sigaction old_act;
-    // Configura um handler para SIGINT para permitir que o jogador saia do jo
+    // Configura um handler para SIGINT para permitir que o jogador saia do jogo
     sigaction(SIGINT, &(struct sigaction) { .sa_handler = set_player_wants_to_quit }, &old_act);
 
     redrawwin(stdscr);

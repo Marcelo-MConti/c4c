@@ -11,7 +11,7 @@
 #include "game/ia.h"
 #include "game/common.h"
 
-/* armazena o estado da IA */
+/* armazena o estado da nossa IA */
 struct ia_state {
     pthread_mutex_t mutex;    /* Protege o acesso às variáveis compartilhadas */
     int32_t col;              /* Coluna escolhida pela IA (-1 = sem movimento) */
@@ -47,6 +47,7 @@ static void *ia_event_loop(void *ctx)
 
     // loop principal da thread
     while (true) {
+
         /* Verifica se deve matar/parar a thread */
         pthread_mutex_lock(&IA.mutex);
         if (!IA.running) {
@@ -56,7 +57,7 @@ static void *ia_event_loop(void *ctx)
         pthread_mutex_unlock(&IA.mutex);
 
         /* Aguarda um tempo para simular "pensamento" da IA (500-1500ms) */
-        // usleep(500000 + rand() % 1000000);
+        usleep(500000 + rand() % 1000000);
 
         /* Encontra uma coluna válida (não cheia) para fazer a jogada */
         pthread_mutex_lock(&IA.mutex);
@@ -153,6 +154,7 @@ int ia_get_move(void)
 /* Encerra a IA e aguarda a thread terminar */
 void ia_end(void)
 {
+    // se ja foi desligada, só retorno
     if (!ia_thread_running)
         return;
 

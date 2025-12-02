@@ -1,8 +1,12 @@
 # Uso de threading
 
+"este manual devem estar descritas as partes de
+implementação das Threads e do Semáforo, sendo explicadas o
+porque e como foram utilizadas."
+
 O jogo utiliza duas threads: a thread principal, responsável pela
-renderização, e uma thread auxiliar, que se encarrega de implementar o
-[protocolo](PROTOCOL.md) de comunicação no modo netplay. As duas threads
+renderização, e uma thread auxiliar, que é responsável por executar a lógica
+da IA do jogo no modo de jogatina contra o PC. As duas threads
 compartilham uma região de memória, usada para sinalizar que:
 
  - há uma jogada que foi feita localmente que deve ser transmitida
